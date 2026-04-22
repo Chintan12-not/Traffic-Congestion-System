@@ -1988,7 +1988,7 @@ function updatePredictionUI(congPct, origin, dest, hour, timeStr = "09:00", trav
   const etaStr = `${String(arrH % 24).padStart(2,'0')}:${String(arrM).padStart(2,'0')}`;
 
   if (document.getElementById('pred-delay')) {
-    document.getElementById('pred-delay').innerHTML = `<span style="color:var(--accent);font-weight:600;font-family:var(--font-mono);">ETA: ${etaStr}</span> &middot; +${Math.floor(congPct/3)} min estimated delay`;
+    document.getElementById('pred-delay').innerHTML = `<span style="color:var(--accent);font-weight:600;font-family:var(--font-mono);">Depart: ${timeStr} &rarr; Arrive: ${etaStr}</span><br><span style="font-size:11px;">+${Math.floor(congPct/3)} min estimated delay</span>`;
   }
 
   const hours48 = [];
