@@ -130,9 +130,20 @@
     .panel-container {
       width: 100%; margin: auto 0 0 0;
       border-radius: 24px 24px 0 0;
-      max-height: 80vh;
+      max-height: 85vh;
     }
     .top-nav { padding: 16px 20px; }
+    .brand-title { font-size: 20px; }
+    .btn-primary { font-size: 14px; padding: 14px 20px; }
+    .auth-card { padding: 32px 24px; width: 95%; max-width: 380px; }
+    .auth-title { font-size: 24px; }
+    .metric-time { font-size: 24px; }
+  }
+  @media (max-width: 480px) {
+    .panel-container { max-height: 75vh; }
+    .panel-body { padding: 16px; }
+    .route-card { padding: 12px; }
+    .metric-eta, .metric-delay { font-size: 13px; }
   }
 
   /* Panel Tabs */
