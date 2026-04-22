@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexRoute — The Future of Urban Mobility</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root {
+    --bg-dark: #060810;
+    --bg-card: rgba(16, 20, 28, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --accent: #00E5FF;
+    --brand-grad: linear-gradient(135deg, #00E5FF 0%, #0077FF 100%);
+    --text-primary: #F0F4F8;
+    --text-sec: #8A94A6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 119, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(0, 229, 255, 0.08) 0%, transparent 50%);
+  }
+
+  /* Navbar */
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 24px 6%;
+    position: fixed; width: 100%; top: 0; z-index: 50;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 40px; height: 40px; background: var(--brand-grad); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,229,255,0.3); }
+  .brand-text { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 800; }
+  
+  .nav-actions button {
+    background: transparent; color: #fff; border: 1px solid var(--glass-border);
+    padding: 10px 24px; border-radius: 8px; font-size: 14px; font-family: 'Space Grotesk'; font-weight: 700;
+    cursor: pointer; transition: 0.2s;
+  }
+  .nav-actions button:hover { background: rgba(255,255,255,0.05); }
+
+  /* Hero Section */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0 5%; position: relative;
+  }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.1; font-weight: 800;
+    margin-bottom: 24px; max-width: 900px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #A0ABBD 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 18px; color: var(--text-sec); max-width: 600px; line-height: 1.6; margin-bottom: 40px;
+  }
+  
+  /* Primary Call to Action */
+  .btn-cta {
+    background: var(--brand-grad);
+    border: none; color: #fff;
+    padding: 18px 36px; border-radius: 100px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 10px 30px rgba(0, 119, 255, 0.4);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .btn-cta:hover { transform: translateY(-4px) scale(1.02); }
+
+  /* Explainer Grid */
+  .explainer {
+    padding: 100px 6%; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px;
+    position: relative; z-index: 2;
+  }
+  .card {
+    background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: 24px; padding: 40px;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .card:hover { transform: translateY(-5px); border-color: rgba(0,229,255,0.4); }
+  .card-icon { width: 50px; height: 50px; background: rgba(0,229,255,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+  .card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 24px; margin-bottom: 12px; }
+  .card p { color: var(--text-sec); line-height: 1.6; font-size: 15px; }
+
+  /* Authentication Overlay Overlay */
+  .auth-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(6, 8, 16, 0.9); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+  }
+  .auth-overlay.active { opacity: 1; pointer-events: auto; }
+  
+  .auth-modal {
+    background: var(--bg-card); border: 1px solid var(--glass-border);
+    border-radius: 32px; padding: 48px; width: 90%; max-width: 440px;
+    text-align: center; position: relative; transform: translateY(20px); transition: 0.4s ease;
+  }
+  .auth-overlay.active .auth-modal { transform: translateY(0); }
+  .close-auth {
+    position: absolute; top: 24px; right: 24px; background: none; border: none;
+    color: var(--text-sec); cursor: pointer; padding: 8px;
+  }
+  .close-auth:hover { color: #fff; }
+
+  .auth-title { font-family: 'Space Grotesk', sans-serif; font-size: 28px; margin-bottom: 12px; }
+  .auth-desc { color: var(--text-sec); font-size: 15px; margin-bottom: 32px; }
+
+  /* Auth Bars / Buttons */
+  .auth-bar { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+  .btn-google {
+    background: #fff; color: #111; border: none; width: 100%;
+    padding: 16px; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+    transition: 0.2s;
+  }
+  .btn-google:hover { transform: scale(0.98); }
+  .btn-guest {
+    background: transparent; color: var(--accent); border: 1px solid rgba(0,229,255,0.3); width: 100%;
+    padding: 16px; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: 0.2s;
+  }
+  .btn-guest:hover { background: rgba(0,229,255,0.1); }
+</style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav>
+    <div class="brand">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+      </div>
+      <div class="brand-text">NexRoute</div>
+    </div>
+    <div class="nav-actions">
+      <button onclick="openAuth()">Sign In / Register</button>
+    </div>
+  </nav>
+
+  <!-- Hero Banner -->
+  <header class="hero">
+    <h1>The Intelligence Behind Your Journey.</h1>
+    <p>NexRoute connects real-world mapping telemetry with deep AI algorithms to eliminate gridlock. Step into the command center and let our prediction engines navigate you flawlessly through the chaos.</p>
+    
+    <button class="btn-cta" onclick="openAuth()">
+      Let's make your way easy
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </header>
+
+  <!-- System Explanation -->
+  <section class="explainer">
+    <div class="card">
+      <div class="card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+      </div>
+      <h3>Real-time Data Matrix</h3>
+      <p>Our core architecture links securely directly with Google's planetary-scale servers to calculate live traffic delay deltas across thousands of segmented city blocks constantly.</p>
+    </div>
+    
+    <div class="card">
+      <div class="card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <h3>Smart Route Optimizer</h3>
+      <p>Simply enter where you are and where you need to be. By combining shortest-path theories and live hazard detection, we output the absolute optimal paths.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+      </div>
+      <h3>Predictive Future Engine</h3>
+      <p>Leaving at 5:30 PM tomorrow? Our custom heuristic algorithm models future congestion density using historical bottlenecks so you don't depart blind.</p>
+    </div>
+  </section>
+
+  <!-- Auth Modal Overlay -->
+  <div class="auth-overlay" id="authObj">
+    <div class="auth-modal">
+        <button class="close-auth" onclick="closeAuth()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+        
+        <div class="logo-icon" style="margin: 0 auto 20px;">
+           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+        </div>
+        <h2 class="auth-title">Welcome Aboard</h2>
+        <p class="auth-desc">Please verify your identity to access the smart navigation portals.</p>
+        
+        <div class="auth-bar">
+            <button class="btn-google" onclick="procGoogleLogin()">
+                <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 27, -39)"><path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/><path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/><path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/><path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/></g></svg>
+                Continue with Google
+            </button>
+            <button class="btn-guest" onclick="procGuestLogin()">
+                Access Command Center
+            </button>
+        </div>
+        
+        <p style="font-size:12px; color:var(--text-sec);">By continuing, you agree to NexRoute's Terms of Service and Privacy Policy ensuring encrypted travel metrics.</p>
+    </div>
+  </div>
+
+  <script>
+    // Supabase Initialization
+    const supabaseUrl = 'https://yyocrxsyvulrmudflelk.supabase.co';
+    const supabaseKey = 'sb_publishable_Q-h91YMN-b_SZPRK4_CReg_8WeAERwH';
+    const supClient = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+
+    // Listen on init if user is ALREADY authenticated to route them automatically
+    window.addEventListener('load', async () => {
+        if(supClient) {
+            const { data: { session } } = await supClient.auth.getSession();
+            if(session) redirectSys();
+        }
+    });
+
+    const overlay = document.getElementById('authObj');
+    
+    // UI Toggles
+    function openAuth() { overlay.classList.add('active'); }
+    function closeAuth() { overlay.classList.remove('active'); }
+
+    // Authentication Handlers
+    async function procGoogleLogin() {
+        if(supClient) {
+            // Initiate Supabase Auth Sequence
+            const { error } = await supClient.auth.signInWithOAuth({ 
+               provider: 'google', 
+               options: { redirectTo: window.location.origin + '/user_app.html' } 
+            });
+            if(error) fallbackSim();
+        } else {
+            fallbackSim();
+        }
+    }
+
+    function procGuestLogin() {
+        // Immediately redirect to admin/command dashboard
+        window.location.href = 'admin_dashboard.html';
+    }
+
+    function redirectSys() {
+        // Success redirect logic
+        window.location.href = 'user_app.html';
+    }
+
+    function fallbackSim() {
+        const btn = document.querySelector('.btn-google');
+        btn.innerHTML = 'Authenticating Securely...';
+        setTimeout(() => redirectSys(), 1200);
+    }
+  </script>
+</body>
+</html>

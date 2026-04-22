@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrafficIQ — Intelligent Congestion Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg0:#060810; --bg1:#0b0e1a; --bg2:#0f1422; --bg3:#141928; --bg4:#1a2035; --bg5:#202840;
+  --border:#ffffff0d; --border2:#ffffff18; --border3:#ffffff28;
+  --text:#dde3f0; --text2:#7a86a0; --text3:#3d4760; --text4:#252e45;
+  --cyan:#00e5c8; --cyan2:#00b8a3; --blue:#2979ff; --blue2:#1a56db;
+  --amber:#ffab00; --red:#ff3d5a; --green:#00e676; --purple:#bb86fc;
+  --orange:#ff6d00; --pink:#f06292;
+  --low:#00e676; --med:#ffab00; --high:#ff3d5a; --critical:#ff1744;
+  --font-head:'Outfit',sans-serif; --font-body:'Outfit',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  --r4:4px; --r8:8px; --r12:12px; --r16:16px; --r20:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg0);color:var(--text);font-family:var(--font-body);font-size:13px;display:flex;flex-direction:column}
+
+/* ─── TOPBAR ─── */
+#topbar{height:52px;min-height:52px;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;position:relative}
+.topbar-logo{display:flex;align-items:center;gap:10px;margin-right:8px}
+.logo-hex{width:34px;height:34px;position:relative;display:flex;align-items:center;justify-content:center}
+.logo-hex svg{width:34px;height:34px}
+.logo-name{font-family:var(--font-head);font-size:17px;font-weight:800;letter-spacing:-0.5px;color:var(--text)}
+.logo-name span{color:var(--cyan)}
+.topbar-divider{width:1px;height:24px;background:var(--border2)}
+.topbar-stat{display:flex;flex-direction:column;padding:0 14px;border-right:1px solid var(--border);cursor:default}
+.topbar-stat-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:2px}
+.topbar-stat-value{font-size:15px;font-weight:700;font-family:var(--font-head);line-height:1}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:20px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--green)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,230,118,0.4)}50%{opacity:0.6;box-shadow:0 0 0 5px rgba(0,230,118,0)}}
+.weather-widget{display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border);font-size:12px;color:var(--text2)}
+.weather-temp{font-weight:600;color:var(--text);font-family:var(--font-head)}
+
+/* ─── SHELL ─── */
+#shell{display:flex;flex:1;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+#sidebar{width:210px;min-width:210px;background:var(--bg1);border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;z-index:50}
+.nav-section-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:1px 8px;border-radius:var(--r8);cursor:pointer;color:var(--text2);font-size:12.5px;font-weight:400;transition:all 0.12s;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(0,229,200,0.1);color:var(--cyan)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--cyan);border-radius:0 3px 3px 0}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:0.6}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;font-size:10px;font-family:var(--font-mono);padding:2px 7px;border-radius:10px;background:var(--red);color:#fff;font-weight:500}
+.nav-badge.amber{background:var(--amber);color:#000}
+.nav-badge.green{background:var(--green);color:#000}
+
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border);margin-top:auto}
+.system-health{background:var(--bg3);border-radius:var(--r8);padding:10px 12px}
+.health-title{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.health-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:5px}
+.health-row:last-child{margin-bottom:0}
+.health-label{color:var(--text3)}
+.health-val{font-family:var(--font-mono);color:var(--cyan);font-size:10px}
+.mini-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:3px;overflow:hidden}
+.mini-bar-fill{height:100%;background:var(--cyan);border-radius:2px}
+
+/* ─── MAIN ─── */
+#main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.page{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.page.active{display:flex}
+.page-inner{padding:20px 24px;flex:1}
+
+/* ─── PAGE HEADER ─── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.ph-title{font-family:var(--font-head);font-size:22px;font-weight:800;letter-spacing:-0.5px;color:var(--text)}
+.ph-sub{font-size:12px;color:var(--text2);margin-top:3px;font-family:var(--font-mono)}
+.ph-actions{display:flex;align-items:center;gap:8px}
+
+/* ─── BUTTONS ─── */
+.btn{padding:8px 16px;border-radius:var(--r8);border:1px solid var(--border3);background:var(--bg3);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font-body);font-weight:500;transition:all 0.12s;white-space:nowrap}
+.btn:hover{background:var(--bg4);border-color:var(--border3)}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:var(--cyan);color:#060810;border-color:var(--cyan);font-weight:700}
+.btn-primary:hover{background:var(--cyan2);border-color:var(--cyan2)}
+.btn-danger{background:rgba(255,61,90,0.15);color:var(--red);border-color:rgba(255,61,90,0.3)}
+.btn-danger:hover{background:rgba(255,61,90,0.25)}
+.btn-amber{background:rgba(255,171,0,0.12);color:var(--amber);border-color:rgba(255,171,0,0.25)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-icon{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:var(--r8)}
+
+/* ─── GRID ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+.g5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:14px}
+.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}
+
+/* ─── CARDS ─── */
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r12);padding:18px 20px;position:relative;overflow:hidden}
+.card-sm{padding:14px 16px}
+.card-title{font-size:10px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px}
+.card-accent-line{position:absolute;top:0;left:0;right:0;height:2px}
+.card-accent-line.cyan{background:var(--cyan)}
+.card-accent-line.blue{background:var(--blue)}
+.card-accent-line.red{background:var(--red)}
+.card-accent-line.amber{background:var(--amber)}
+.card-accent-line.green{background:var(--green)}
+
+/* ─── STAT CARDS ─── */
+.kpi{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r12);padding:16px 18px;position:relative;overflow:hidden;cursor:default;transition:border-color 0.15s}
+.kpi:hover{border-color:var(--border3)}
+.kpi-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:0.07}
+.kpi-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+.kpi-value{font-family:var(--font-head);font-size:32px;font-weight:800;line-height:1;letter-spacing:-1px}
+.kpi-change{font-size:11px;color:var(--text2);margin-top:6px;display:flex;align-items:center;gap:5px}
+.kpi-change .up{color:var(--red)}.kpi-change .dn{color:var(--green)}.kpi-change .nc{color:var(--text3)}
+.kpi-sparkline{height:32px;margin-top:8px;position:relative}
+.kpi-bar-track{height:3px;background:var(--bg4);border-radius:2px;margin-top:8px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width 1s ease}
+
+/* ─── MAP CANVAS ─── */
+#map-canvas{width:100%;height:100%;display:block;cursor:crosshair}
+.map-wrap{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r12);overflow:hidden;position:relative}
+.map-overlay-top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5;pointer-events:none}
+.map-overlay-top>*{pointer-events:auto}
+.map-info-pill{background:rgba(11,14,26,0.9);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:11px;font-family:var(--font-mono);color:var(--text2)}
+.map-legend{background:rgba(11,14,26,0.92);border:1px solid var(--border2);border-radius:var(--r8);padding:10px 14px}
+.map-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2);margin-bottom:5px}
+.map-legend-item:last-child{margin-bottom:0}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+.map-controls{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.map-ctrl-btn{width:32px;height:32px;background:rgba(11,14,26,0.9);border:1px solid var(--border2);border-radius:var(--r8);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:14px;transition:all 0.12s}
+.map-ctrl-btn:hover{background:var(--bg3);color:var(--text)}
+.map-tooltip{position:absolute;background:var(--bg1);border:1px solid var(--border3);border-radius:var(--r8);padding:10px 14px;pointer-events:none;z-index:20;font-size:11px;display:none;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+.map-tooltip.show{display:block}
+
+/* ─── BADGES ─── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:600;font-family:var(--font-mono);letter-spacing:0.5px;text-transform:uppercase}
+.badge-low{background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
+.badge-medium{background:rgba(255,171,0,0.12);color:var(--amber);border:1px solid rgba(255,171,0,0.2)}
+.badge-high{background:rgba(255,61,90,0.12);color:var(--red);border:1px solid rgba(255,61,90,0.2)}
+.badge-critical{background:rgba(255,23,68,0.15);color:var(--critical);border:1px solid rgba(255,23,68,0.3);animation:badgePulse 1.5s infinite}
+@keyframes badgePulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.badge-info{background:rgba(41,121,255,0.12);color:var(--blue);border:1px solid rgba(41,121,255,0.2)}
+.badge-purple{background:rgba(187,134,252,0.12);color:var(--purple);border:1px solid rgba(187,134,252,0.2)}
+
+/* ─── ALERTS ─── */
+.alert-row{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);transition:background 0.1s}
+.alert-row:last-child{border-bottom:none;padding-bottom:0}
+.alert-row:first-child{padding-top:0}
+.alert-sev{width:4px;min-height:48px;border-radius:4px;flex-shrink:0}
+.alert-sev.critical{background:var(--critical)}
+.alert-sev.high{background:var(--red)}
+.alert-sev.medium{background:var(--amber)}
+.alert-sev.low{background:var(--green)}
+.alert-content{flex:1;min-width:0}
+.alert-title{font-weight:600;font-size:13px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-desc{font-size:11px;color:var(--text2);margin-bottom:4px}
+.alert-meta{font-size:10px;font-family:var(--font-mono);color:var(--text3)}
+.alert-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+
+/* ─── DATA TABLE ─── */
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{text-align:left;padding:9px 12px;font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border2);font-weight:400;white-space:nowrap}
+.dt td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tbody tr{transition:background 0.1s;cursor:default}
+.dt tbody tr:hover td{background:var(--bg3)}
+.dt td:first-child{color:var(--text);font-weight:500}
+.dt td.mono{font-family:var(--font-mono);font-size:11px}
+.dt td.cyan{color:var(--cyan);font-family:var(--font-mono)}
+
+/* ─── INPUTS ─── */
+.inp{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r8);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--font-body);outline:none;transition:border-color 0.15s;width:100%}
+.inp:focus{border-color:var(--cyan)}
+.inp::placeholder{color:var(--text3)}
+select.inp{cursor:pointer}
+.inp-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block}
+.inp-group{display:flex;flex-direction:column}
+
+/* ─── SEARCH BAR ─── */
+.search-bar{display:grid;gap:10px;align-items:end;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r12);padding:18px 20px;margin-bottom:18px}
+.search-bar.cols5{grid-template-columns:1fr 1fr 140px 140px 140px auto}
+.search-bar.cols4{grid-template-columns:1fr 1fr 160px 160px auto}
+
+/* ─── PREDICTION RESULT ─── */
+#pred-result{display:none}
+#pred-result.show{display:block}
+.pred-header{display:flex;align-items:center;gap:20px;padding:20px;background:var(--bg3);border-radius:var(--r12);margin-bottom:14px;border:1px solid var(--border2)}
+.cong-ring{position:relative;width:90px;height:90px;flex-shrink:0}
+.cong-ring svg{width:90px;height:90px}
+.cong-ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cong-ring-pct{font-family:var(--font-head);font-size:18px;font-weight:800;line-height:1}
+.cong-ring-sub{font-size:9px;font-family:var(--font-mono);color:var(--text3)}
+.pred-details{flex:1}
+.pred-level-badge{font-family:var(--font-head);font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:4px}
+.pred-stats-row{display:flex;gap:20px;margin-top:10px}
+.pred-stat{text-align:center}
+.pred-stat-val{font-family:var(--font-head);font-size:20px;font-weight:700}
+.pred-stat-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.hourly-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:12px}
+.hour-cell{background:var(--bg3);border-radius:var(--r4);padding:7px 4px;text-align:center;border:1px solid var(--border)}
+.hour-cell.peak{border-color:rgba(255,61,90,0.3)}
+.hour-cell.med{border-color:rgba(255,171,0,0.3)}
+.hour-label{font-size:9px;font-family:var(--font-mono);color:var(--text3);margin-bottom:3px}
+.hour-val{font-size:11px;font-weight:700;font-family:var(--font-head)}
+.hour-bar{height:3px;border-radius:2px;margin-top:4px}
+
+/* ─── ROUTE CARDS ─── */
+.route-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r12);padding:16px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden}
+.route-card:hover{border-color:var(--border3);transform:translateX(2px)}
+.route-card.best{border-color:rgba(0,229,200,0.3);background:rgba(0,229,200,0.04)}
+.route-card.best::before{content:'OPTIMAL';position:absolute;top:10px;right:-20px;background:var(--cyan);color:#060810;font-size:8px;font-family:var(--font-mono);font-weight:700;padding:3px 32px;transform:rotate(45deg);letter-spacing:1px}
+.route-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.route-name{font-weight:700;font-size:13px;font-family:var(--font-head);color:var(--text)}
+.route-metrics{display:flex;gap:16px;font-size:11px;color:var(--text2);margin-bottom:10px}
+.route-metric{display:flex;align-items:center;gap:4px}
+.route-metric span{color:var(--text);font-weight:600}
+.route-path-viz{display:flex;height:6px;gap:2px;margin-bottom:8px}
+.path-seg{flex:1;border-radius:3px;transition:background 0.3s}
+.route-waypoints{font-size:10px;color:var(--text3);font-family:var(--font-mono)}
+
+/* ─── HEATMAP ─── */
+.hm-wrap{overflow-x:auto}
+.hm-grid{display:grid;gap:3px;min-width:600px}
+.hm-cell{height:34px;border-radius:var(--r4);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--font-mono);cursor:default;transition:transform 0.1s;border:1px solid transparent}
+.hm-cell:hover{transform:scale(1.08);border-color:var(--border3);z-index:2;position:relative}
+.hm-header{height:24px;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.hm-row-label{height:34px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:10px;font-family:var(--font-mono);color:var(--text3)}
+
+/* ─── INCIDENT TICKER ─── */
+#ticker{background:rgba(255,61,90,0.06);border-top:1px solid rgba(255,61,90,0.15);border-bottom:1px solid rgba(255,61,90,0.15);padding:7px 0;overflow:hidden;white-space:nowrap;position:relative}
+#ticker-inner{display:inline-flex;gap:60px;animation:tickerMove 40s linear infinite;font-size:11px;font-family:var(--font-mono);color:var(--text2)}
+@keyframes tickerMove{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:8px}
+.ticker-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ─── MODEL TRAINING ─── */
+.train-log{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r8);padding:12px;height:180px;overflow-y:auto;font-family:var(--font-mono);font-size:10px;color:var(--text3)}
+.log-line{margin-bottom:3px;line-height:1.5}
+.log-line .ts{color:var(--text4)}
+.log-line .info{color:var(--cyan)}
+.log-line .warn{color:var(--amber)}
+.log-line .ok{color:var(--green)}
+.log-line .err{color:var(--red)}
+
+/* ─── PROGRESS BAR ─── */
+.prog-track{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.5s ease;background:linear-gradient(90deg,var(--blue2),var(--cyan))}
+.prog-fill.amber{background:var(--amber)}
+.prog-fill.red{background:var(--red)}
+
+/* ─── SPEED GAUGE ─── */
+.speed-arc{width:100%;height:60px;position:relative}
+
+/* ─── NOTIFICATION TOAST ─── */
+.toast{position:fixed;top:62px;right:20px;background:var(--bg1);border:1px solid var(--border3);border-radius:var(--r12);padding:14px 18px;z-index:1000;transform:translateX(calc(100% + 24px));transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);max-width:320px;box-shadow:0 12px 40px rgba(0,0,0,0.6)}
+.toast.show{transform:translateX(0)}
+.toast.critical{border-left:3px solid var(--critical)}
+.toast.high{border-left:3px solid var(--red)}
+.toast.medium{border-left:3px solid var(--amber)}
+.toast.low{border-left:3px solid var(--green)}
+.toast.info{border-left:3px solid var(--blue)}
+.toast-title{font-weight:700;font-size:13px;margin-bottom:4px;font-family:var(--font-head)}
+.toast-body{font-size:11px;color:var(--text2);line-height:1.5}
+.toast-close{position:absolute;top:10px;right:12px;color:var(--text3);cursor:pointer;font-size:16px;line-height:1}
+
+/* ─── SIMULATION CONTROLS ─── */
+.sim-panel{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r12);padding:16px;margin-bottom:14px}
+.sim-slider-row{display:grid;grid-template-columns:140px 1fr 50px;align-items:center;gap:12px;margin-bottom:10px}
+.sim-slider-row:last-child{margin-bottom:0}
+.sim-label{font-size:11px;color:var(--text2)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--bg4);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 0 3px rgba(0,229,200,0.15)}
+input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(0,229,200,0.2)}
+.sim-val{font-family:var(--font-mono);font-size:11px;color:var(--cyan);text-align:right}
+
+/* ─── COMPARISON TABLE ─── */
+.compare-grid{display:grid;grid-template-columns:160px repeat(3,1fr);gap:1px;background:var(--border);border-radius:var(--r8);overflow:hidden}
+.compare-cell{background:var(--bg3);padding:11px 14px;font-size:12px}
+.compare-cell.header{background:var(--bg4);font-size:10px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:400}
+.compare-cell.row-label{color:var(--text2);font-size:11px}
+.compare-cell.best-col{background:rgba(0,229,200,0.05)}
+.compare-cell.winner{color:var(--cyan);font-weight:700}
+
+/* ─── IOT PANEL ─── */
+.sensor-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r8);padding:12px;transition:all 0.15s}
+.sensor-card:hover{border-color:var(--border3)}
+.sensor-id{font-size:9px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px}
+.sensor-val{font-family:var(--font-head);font-size:24px;font-weight:800;line-height:1;margin-bottom:2px}
+.sensor-unit{font-size:10px;color:var(--text3)}
+.sensor-status{display:flex;align-items:center;gap:5px;font-size:10px;margin-top:6px}
+.sensor-dot{width:6px;height:6px;border-radius:50%}
+.sensor-wave{height:30px;margin-top:6px}
+
+/* ─── TABS ─── */
+.tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--r8);padding:3px;margin-bottom:16px}
+.tab{padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text3);transition:all 0.12s}
+.tab:hover{color:var(--text2)}
+.tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--bg5)}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn 0.3s ease forwards}
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+
+/* ─── CHART WRAPS ─── */
+.ch{position:relative;width:100%}
+
+/* ─── MINI CHARTS FOR KPIS ─── */
+.sparkline{position:relative;height:28px}
+
+/* Voice Alert Badge */
+.voice-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(187,134,252,0.1);border:1px solid rgba(187,134,252,0.2);border-radius:20px;cursor:pointer;font-size:11px;font-family:var(--font-mono);color:var(--purple);transition:all 0.15s}
+.voice-btn:hover{background:rgba(187,134,252,0.18)}
+.voice-btn.speaking{animation:voicePulse 0.8s infinite}
+@keyframes voicePulse{0%,100%{border-color:rgba(187,134,252,0.4)}50%{border-color:var(--purple)}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="topbar-logo">
+    <div class="logo-hex">
+      <svg viewBox="0 0 34 34" fill="none">
+        <polygon points="17,2 31,9.5 31,24.5 17,32 3,24.5 3,9.5" fill="rgba(0,229,200,0.1)" stroke="#00e5c8" stroke-width="1.5"/>
+        <circle cx="17" cy="17" r="5" fill="#00e5c8"/>
+        <line x1="17" y1="7" x2="17" y2="11" stroke="#00e5c8" stroke-width="1.5"/>
+        <line x1="17" y1="23" x2="17" y2="27" stroke="#00e5c8" stroke-width="1.5"/>
+        <line x1="8" y1="12" x2="11.5" y2="14" stroke="#00e5c8" stroke-width="1.5"/>
+        <line x1="22.5" y1="20" x2="26" y2="22" stroke="#00e5c8" stroke-width="1.5"/>
+        <line x1="8" y1="22" x2="11.5" y2="20" stroke="#00e5c8" stroke-width="1.5"/>
+        <line x1="22.5" y1="14" x2="26" y2="12" stroke="#00e5c8" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">Traffic<span>IQ</span></div>
+    </div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-label">Segments</div>
+    <div class="topbar-stat-value" id="ts-segs" style="color:var(--cyan)">247</div>
+  </div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-label">Congested</div>
+    <div class="topbar-stat-value" id="ts-cong" style="color:var(--amber)">18</div>
+  </div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-label">Critical</div>
+    <div class="topbar-stat-value" id="ts-crit" style="color:var(--red)">3</div>
+  </div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-label">Avg Speed</div>
+    <div class="topbar-stat-value" id="ts-speed" style="color:var(--text)">34 <span style="font-size:10px;font-weight:400;color:var(--text3)">km/h</span></div>
+  </div>
+  <div class="topbar-stat">
+    <div class="topbar-stat-label">Model</div>
+    <div class="topbar-stat-value" style="font-size:12px;color:var(--green);font-family:var(--font-mono)">94.2% acc</div>
+  </div>
+  <div class="topbar-actions">
+    <div class="weather-widget">☁️ <span class="weather-temp" id="weather-temp">28°C</span> <span>Delhi · Partly cloudy</span></div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div class="voice-btn" id="voice-btn" onclick="toggleVoice()">🔊 Voice</div>
+    <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);padding:0 6px;" id="topbar-clock"></div>
+    <button class="btn btn-sm" onclick="exportCSV()">⬇ Export</button>
+    <button class="btn btn-primary btn-sm" onclick="refreshAll()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- INCIDENT TICKER -->
+<div id="ticker">
+  <div id="ticker-inner"></div>
+</div>
+
+<div id="shell">
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="nav-section-label">Monitor</div>
+  <div class="nav-item active" onclick="nav('dashboard',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    Dashboard
+  </div>
+  <div class="nav-item" onclick="nav('livemap',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="1,4 5,2 11,5 15,3 15,14 11,12 5,15 1,13"/><line x1="5" y1="2" x2="5" y2="15"/><line x1="11" y1="5" x2="11" y2="12"/></svg>
+    Live Map
+  </div>
+  <div class="nav-item" onclick="nav('alerts',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 0 1 4 4c0 4-2 5.5-2 5.5H4S2 10 2 6a4 4 0 0 1 4-4z"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"/></svg>
+    Alerts
+    <span class="nav-badge" id="nb-alerts">3</span>
+  </div>
+  <div class="nav-item" onclick="nav('iot',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M4 8a4 4 0 0 1 8 0"/><path d="M1.5 8a6.5 6.5 0 0 1 13 0"/></svg>
+    IoT Sensors
+    <span class="nav-badge green">24</span>
+  </div>
+
+  <div class="nav-section-label">Predict</div>
+  <div class="nav-item" onclick="nav('predict',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 9,9 15,2"/><polyline points="11,2 15,2 15,6"/></svg>
+    Prediction
+  </div>
+  <div class="nav-item" onclick="nav('routes',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><path d="M6 4h4a2 2 0 0 1 2 2v4"/></svg>
+    Route Optimizer
+  </div>
+  <div class="nav-item" onclick="nav('heatmap',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="3" height="3" rx="0.5" opacity="0.3"/><rect x="6" y="1" width="3" height="3" rx="0.5" opacity="0.6"/><rect x="11" y="1" width="4" height="3" rx="0.5" opacity="0.9"/><rect x="1" y="6" width="3" height="3" rx="0.5" opacity="0.6"/><rect x="6" y="6" width="3" height="3" rx="0.5"/><rect x="11" y="6" width="4" height="3" rx="0.5" opacity="0.7"/><rect x="1" y="11" width="3" height="4" rx="0.5" opacity="0.9"/><rect x="6" y="11" width="3" height="4" rx="0.5" opacity="0.5"/><rect x="11" y="11" width="4" height="4" rx="0.5" opacity="0.4"/></svg>
+    Heatmap
+  </div>
+  <div class="nav-item" onclick="nav('simulate',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h3l2-5 3 10 2-5h2"/></svg>
+    Simulator
+  </div>
+
+  <div class="nav-section-label">Admin</div>
+  <div class="nav-item" onclick="nav('analytics',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="10" width="3" height="5" rx="0.5"/><rect x="6" y="6" width="3" height="9" rx="0.5"/><rect x="11" y="2" width="4" height="13" rx="0.5"/></svg>
+    Analytics
+  </div>
+  <div class="nav-item" onclick="nav('model',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L14 4.5v7L8 15 2 11.5v-7L8 1z"/><circle cx="8" cy="8" r="2.5"/></svg>
+    ML Model
+  </div>
+  <div class="nav-item" onclick="nav('settings',this)">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.54 11.54l1.42 1.42M3.05 12.95l1.42-1.42M11.54 4.46l1.42-1.42"/></svg>
+    Settings
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="system-health">
+      <div class="health-title">System Health</div>
+      <div class="health-row"><span class="health-label">API Latency</span><span class="health-val" id="sh-latency">18ms</span></div>
+      <div class="mini-bar"><div class="mini-bar-fill" style="width:92%"></div></div>
+      <div class="health-row" style="margin-top:6px"><span class="health-label">Data Pipeline</span><span class="health-val" style="color:var(--green)">OK</span></div>
+      <div class="health-row"><span class="health-label">ML Inference</span><span class="health-val" style="color:var(--green)">OK</span></div>
+      <div class="health-row"><span class="health-label">DB Connections</span><span class="health-val" id="sh-db">48/50</span></div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- ═══════════════════════════════════════════════
+     DASHBOARD PAGE
+═══════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Command Center</div><div class="ph-sub" id="dash-sub">Loading...</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-sm" onclick="toggleTheme()">◑ Theme</button>
+      <button class="btn btn-sm btn-danger" onclick="testCriticalAlert()">🚨 Simulate Alert</button>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="g5 mb16">
+    <div class="kpi" style="--top-color:var(--cyan)">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--cyan)"></div>
+      <div class="kpi-icon">🛣️</div>
+      <div class="kpi-label">Active Segments</div>
+      <div class="kpi-value" id="kpi-segs" style="color:var(--cyan)">247</div>
+      <div class="kpi-change"><span class="dn">↓ 3</span> from yesterday</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:82%;background:var(--cyan)"></div></div>
+    </div>
+    <div class="kpi">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)"></div>
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-label">Congested Zones</div>
+      <div class="kpi-value" id="kpi-cong" style="color:var(--amber)">18</div>
+      <div class="kpi-change"><span class="up">↑ 5</span> vs 7d avg</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:45%;background:var(--amber)"></div></div>
+    </div>
+    <div class="kpi">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)"></div>
+      <div class="kpi-icon">🚨</div>
+      <div class="kpi-label">Critical Alerts</div>
+      <div class="kpi-value" id="kpi-alerts" style="color:var(--red)">3</div>
+      <div class="kpi-change"><span class="up">↑ 1</span> last hour</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:25%;background:var(--red)"></div></div>
+    </div>
+    <div class="kpi">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue)"></div>
+      <div class="kpi-icon">🚗</div>
+      <div class="kpi-label">Avg Speed (km/h)</div>
+      <div class="kpi-value" id="kpi-speed" style="color:var(--blue)">34</div>
+      <div class="kpi-change"><span class="up">↓ 6</span> below limit</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:56%;background:var(--blue)"></div></div>
+    </div>
+    <div class="kpi">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div>
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-label">Model Accuracy</div>
+      <div class="kpi-value" style="color:var(--green)">94.2%</div>
+      <div class="kpi-change"><span class="dn">↑ 0.4%</span> since retrain</div>
+      <div class="kpi-bar-track"><div class="kpi-bar-fill" style="width:94%;background:var(--green)"></div></div>
+    </div>
+  </div>
+
+  <!-- Map + Alerts -->
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;margin-bottom:14px">
+    <div class="map-wrap" style="height:360px">
+      <canvas id="map-canvas"></canvas>
+      <div class="map-overlay-top">
+        <div class="map-info-pill" id="map-city-label">Delhi NCR — 28 Districts</div>
+        <div>
+          <div class="map-legend">
+            <div class="map-legend-item"><div class="leg-dot" style="background:var(--green)"></div>Low (&lt;30%)</div>
+            <div class="map-legend-item"><div class="leg-dot" style="background:var(--amber)"></div>Medium (30–70%)</div>
+            <div class="map-legend-item"><div class="leg-dot" style="background:var(--red)"></div>High (&gt;70%)</div>
+            <div class="map-legend-item"><div class="leg-dot" style="background:var(--critical);animation:blink 1s infinite"></div>Critical</div>
+          </div>
+        </div>
+      </div>
+      <div class="map-controls">
+        <div class="map-ctrl-btn" title="Zoom in">+</div>
+        <div class="map-ctrl-btn" title="Zoom out">−</div>
+        <div class="map-ctrl-btn" title="Reset" style="font-size:12px">⊕</div>
+        <div class="map-ctrl-btn" title="Layers" style="font-size:11px">⊞</div>
+      </div>
+      <div class="map-tooltip" id="map-tt"></div>
+    </div>
+
+    <div class="card" style="height:360px;overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin:0">Recent Alerts</div>
+        <button class="btn btn-sm" onclick="nav('alerts',null)">View All →</button>
+      </div>
+      <div id="dash-alerts" style="overflow-y:auto;flex:1"></div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">Traffic Volume — 24h</div>
+      <div class="ch" style="height:160px"><canvas id="ch-volume"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Congestion by Hour (Today vs Avg)</div>
+      <div class="ch" style="height:160px"><canvas id="ch-hourly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Level Distribution</div>
+      <div class="ch" style="height:160px"><canvas id="ch-dist"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     LIVE MAP PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-livemap">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Live Traffic Map</div><div class="ph-sub">Interactive city-wide congestion view</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-sm" onclick="cycleMapLayer()" id="layer-btn">🌡 Heatmap Layer</button>
+      <button class="btn btn-sm btn-amber" onclick="filterMapLevel('high')" id="filter-btn">⚠ Show Critical Only</button>
+      <button class="btn btn-sm" onclick="filterMapLevel('all')">Show All</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:14px">
+    <div class="map-wrap" style="height:500px">
+      <canvas id="map-canvas2"></canvas>
+      <div class="map-overlay-top">
+        <div class="map-info-pill" id="map2-info">247 segments · 18 congested</div>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="leg-dot" style="background:var(--green)"></div>Free flow</div>
+          <div class="map-legend-item"><div class="leg-dot" style="background:var(--amber)"></div>Moderate</div>
+          <div class="map-legend-item"><div class="leg-dot" style="background:var(--red)"></div>Heavy</div>
+          <div class="map-legend-item"><div class="leg-dot" style="background:var(--critical)"></div>Gridlock</div>
+        </div>
+      </div>
+      <div class="map-controls">
+        <div class="map-ctrl-btn">+</div>
+        <div class="map-ctrl-btn">−</div>
+        <div class="map-ctrl-btn" style="font-size:11px">⊕</div>
+      </div>
+      <div class="map-tooltip" id="map-tt2"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;height:500px;overflow:hidden">
+      <div class="card card-sm" style="flex-shrink:0">
+        <div class="card-title">Segment Feed</div>
+        <div id="seg-feed" style="overflow-y:auto;max-height:200px"></div>
+      </div>
+      <div class="card card-sm" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div class="card-title">Speed Distribution</div>
+        <div class="ch" style="height:130px;flex-shrink:0"><canvas id="ch-speed-dist"></canvas></div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Flow efficiency</span><span style="color:var(--text);font-weight:600" id="flow-eff">67%</span></div>
+          <div class="prog-track"><div class="prog-fill" id="flow-bar" style="width:67%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ALERTS PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-alerts">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Alert Management</div><div class="ph-sub">Real-time incident monitoring & response</div></div>
+    <div class="ph-actions">
+      <select class="inp" style="width:140px;padding:7px 10px" id="alert-sev-filter" onchange="renderAlerts()">
+        <option value="all">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <button class="btn btn-sm btn-danger" onclick="injectAlert()">+ Simulate Alert</button>
+      <button class="btn btn-sm" onclick="clearAllAlerts()">✕ Clear All</button>
+    </div>
+  </div>
+
+  <div class="g4 mb16">
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--critical)"></div><div class="kpi-label">Critical</div><div class="kpi-value" id="ac-critical" style="color:var(--critical)">1</div><div class="kpi-change">Immediate response needed</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)"></div><div class="kpi-label">High</div><div class="kpi-value" id="ac-high" style="color:var(--red)">3</div><div class="kpi-change">Within 15 minutes</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)"></div><div class="kpi-label">Medium</div><div class="kpi-value" id="ac-med" style="color:var(--amber)">7</div><div class="kpi-change">Monitor & manage</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div><div class="kpi-label">Resolved Today</div><div class="kpi-value" style="color:var(--green)">24</div><div class="kpi-change">Avg 18 min response</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Active Alerts</div>
+      <div id="alerts-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Alert Trend (Last 7 Days)</div>
+      <div class="ch mb16" style="height:180px"><canvas id="ch-alert-trend"></canvas></div>
+      <div class="card-title">Response Time Distribution</div>
+      <div class="ch" style="height:120px"><canvas id="ch-resp-time"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     IOT PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-iot">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">IoT Sensor Network</div><div class="ph-sub">24 active sensors across Delhi NCR</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-sm">⬇ Download Readings</button>
+      <button class="btn btn-sm btn-primary">+ Add Sensor</button>
+    </div>
+  </div>
+
+  <div class="g4 mb16" id="sensor-grid"></div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Sensor Data Stream (Last 60 min)</div>
+      <div class="ch" style="height:200px"><canvas id="ch-sensor-stream"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sensor Status Map</div>
+      <table class="dt">
+        <thead><tr><th>Sensor ID</th><th>Location</th><th>Type</th><th>Last Reading</th><th>Status</th></tr></thead>
+        <tbody id="sensor-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PREDICTION PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-predict">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Prediction Engine</div><div class="ph-sub">LSTM + ARIMA ensemble · 94.2% accuracy</div></div>
+    <div class="ph-actions">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">Model: <span style="color:var(--cyan)">LSTM-v3.2</span></div>
+    </div>
+  </div>
+
+  <div class="search-bar cols5 mb16">
+    <div class="inp-group"><label class="inp-label">Origin</label><input class="inp" id="p-origin" value="Connaught Place" placeholder="Enter origin"></div>
+    <div class="inp-group"><label class="inp-label">Destination</label><input class="inp" id="p-dest" value="Cyber City, Gurugram" placeholder="Enter destination"></div>
+    <div class="inp-group"><label class="inp-label">Date</label><input class="inp" type="date" id="p-date"></div>
+    <div class="inp-group"><label class="inp-label">Time</label><input class="inp" type="time" id="p-time" value="09:00"></div>
+    <div class="inp-group"><label class="inp-label">Mode</label><select class="inp" id="p-mode"><option>Driving</option><option>Bus</option><option>Metro</option></select></div>
+    <button class="btn btn-primary" style="height:38px;align-self:end" onclick="runPrediction()">Predict →</button>
+  </div>
+
+  <div id="pred-result">
+    <!-- Prediction output goes here via JS -->
+  </div>
+
+  <div class="g2 mt14" style="margin-top:14px">
+    <div class="card">
+      <div class="card-title">Historical Pattern — Same Route</div>
+      <div class="ch" style="height:180px"><canvas id="ch-hist-route"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Weekly Congestion Profile</div>
+      <div class="ch" style="height:180px"><canvas id="ch-weekly"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ROUTES PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-routes">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Route Optimizer</div><div class="ph-sub">A* + Dijkstra algorithm · Real-time rerouting</div></div>
+  </div>
+
+  <div class="search-bar cols4 mb16">
+    <div class="inp-group"><label class="inp-label">From</label><input class="inp" id="r-from" value="India Gate" placeholder="Start"></div>
+    <div class="inp-group"><label class="inp-label">To</label><input class="inp" id="r-to" value="IGI Airport T3" placeholder="End"></div>
+    <div class="inp-group"><label class="inp-label">Depart</label><input class="inp" type="time" id="r-time" value="08:30"></div>
+    <div class="inp-group"><label class="inp-label">Priority</label><select class="inp" id="r-pref"><option value="fastest">Fastest</option><option value="least">Least Traffic</option><option value="eco">Eco / Fuel</option><option value="balanced">Balanced</option></select></div>
+    <button class="btn btn-primary" style="height:38px;align-self:end" onclick="findRoutes()">Find Routes →</button>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div id="routes-list"></div>
+      <div class="card mt14" style="margin-top:14px">
+        <div class="card-title">Route Comparison</div>
+        <div id="route-compare"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Performance Chart</div>
+        <div class="ch" style="height:200px"><canvas id="ch-routes"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Traffic Along Route A (Optimal)</div>
+        <div class="ch" style="height:140px"><canvas id="ch-route-detail"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     HEATMAP PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-heatmap">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Congestion Heatmap</div><div class="ph-sub">Hour × Day pattern analysis</div></div>
+    <div class="ph-actions">
+      <select class="inp" style="width:120px;padding:7px 10px" id="hm-metric" onchange="renderHeatmap()">
+        <option value="congestion">Congestion %</option>
+        <option value="speed">Avg Speed</option>
+        <option value="volume">Volume</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card mb16">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="card-title" style="margin:0">Weekly Pattern Matrix</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)">
+        Low <div style="display:flex;gap:2px">
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,230,118,0.15)"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(0,230,118,0.4)"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,171,0,0.4)"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,171,0,0.8)"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,61,90,0.5)"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,61,90,0.9)"></div>
+        </div> High
+      </div>
+    </div>
+    <div class="hm-wrap"><div id="hm-grid"></div></div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">Peak Hour Analysis</div>
+      <div class="ch" style="height:200px"><canvas id="ch-peak"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Day of Week Avg</div>
+      <div class="ch" style="height:200px"><canvas id="ch-dow"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Zone Radar</div>
+      <div class="ch" style="height:200px"><canvas id="ch-radar"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SIMULATOR PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-simulate">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Traffic Simulator</div><div class="ph-sub">Adjust parameters and observe predicted congestion</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-sm" onclick="resetSim()">↺ Reset</button>
+      <button class="btn btn-primary btn-sm" onclick="runSim()">▶ Run Simulation</button>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="card mb16">
+        <div class="card-title">Scenario Parameters</div>
+        <div class="sim-panel" style="margin-bottom:0;background:transparent;border:none;padding:0">
+          <div class="sim-slider-row"><span class="sim-label">Vehicle Count</span><input type="range" min="100" max="2000" value="800" id="sim-veh" oninput="updateSim()"><span class="sim-val" id="sv-veh">800</span></div>
+          <div class="sim-slider-row"><span class="sim-label">Weather Factor</span><input type="range" min="0" max="100" value="20" id="sim-wx" oninput="updateSim()"><span class="sim-val" id="sv-wx">20%</span></div>
+          <div class="sim-slider-row"><span class="sim-label">Incidents</span><input type="range" min="0" max="10" value="1" id="sim-inc" oninput="updateSim()"><span class="sim-val" id="sv-inc">1</span></div>
+          <div class="sim-slider-row"><span class="sim-label">Events Nearby</span><input type="range" min="0" max="5" value="0" id="sim-evt" oninput="updateSim()"><span class="sim-val" id="sv-evt">0</span></div>
+          <div class="sim-slider-row"><span class="sim-label">Road Capacity %</span><input type="range" min="10" max="100" value="100" id="sim-cap" oninput="updateSim()"><span class="sim-val" id="sv-cap">100%</span></div>
+          <div class="sim-slider-row"><span class="sim-label">Time of Day (h)</span><input type="range" min="0" max="23" value="8" id="sim-hour" oninput="updateSim()"><span class="sim-val" id="sv-hour">8:00</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Scenario Presets</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-sm" onclick="loadPreset('morning')">🌅 Morning Rush</button>
+          <button class="btn btn-sm" onclick="loadPreset('rain')">🌧 Heavy Rain</button>
+          <button class="btn btn-sm" onclick="loadPreset('accident')">💥 Major Accident</button>
+          <button class="btn btn-sm" onclick="loadPreset('event')">🎉 Large Event</button>
+          <button class="btn btn-sm" onclick="loadPreset('midnight')">🌙 Midnight</button>
+          <button class="btn btn-sm btn-primary" onclick="loadPreset('worst')">💀 Worst Case</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Predicted Outcome</div>
+        <div id="sim-result"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Simulation Forecast</div>
+        <div class="ch" style="height:200px"><canvas id="ch-sim"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ANALYTICS PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-analytics">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">Analytics & Reports</div><div class="ph-sub">30-day performance deep dive</div></div>
+    <div class="ph-actions">
+      <select class="inp" style="width:120px;padding:7px 10px"><option>Last 30 days</option><option>Last 7 days</option><option>Last 90 days</option></select>
+      <button class="btn btn-sm btn-primary" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <div class="g4 mb16">
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue)"></div><div class="kpi-label">Total Records</div><div class="kpi-value" style="color:var(--blue)">2.4M</div><div class="kpi-change"><span class="nc">—</span> last 30d</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div><div class="kpi-label">Avg Congestion</div><div class="kpi-value" style="color:var(--green)">38%</div><div class="kpi-change"><span class="dn">↓ 4%</span> vs prev month</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)"></div><div class="kpi-label">Peak Delay</div><div class="kpi-value" style="color:var(--amber)">23m</div><div class="kpi-change">Morning rush avg</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--red)"></div><div class="kpi-label">Incidents</div><div class="kpi-value" style="color:var(--red)">142</div><div class="kpi-change"><span class="up">↑ 12</span> vs last month</div></div>
+  </div>
+
+  <div class="g2 mb16">
+    <div class="card">
+      <div class="card-title">30-Day Congestion Trend</div>
+      <div class="ch" style="height:200px"><canvas id="ch-trend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Incident Type Breakdown</div>
+      <div class="ch" style="height:200px"><canvas id="ch-incident-types"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="card-title" style="margin:0">Segment Analytics</div>
+      <input class="inp" style="width:200px" placeholder="Search segments..." oninput="filterTable(this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dt" id="admin-dt">
+        <thead><tr><th>Segment ID</th><th>Name</th><th>Avg Speed</th><th>Density</th><th>Congestion Index</th><th>Incidents</th><th>Uptime</th><th>Status</th></tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ML MODEL PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-model">
+<div class="page-inner">
+  <div class="ph">
+    <div><div class="ph-title">ML Model Dashboard</div><div class="ph-sub">LSTM-v3.2 + ARIMA ensemble · Production deployment</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-sm btn-amber" onclick="retrainModel()">⚡ Retrain Model</button>
+      <button class="btn btn-sm">⬇ Export Weights</button>
+    </div>
+  </div>
+
+  <div class="g4 mb16">
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--cyan)"></div><div class="kpi-label">Accuracy</div><div class="kpi-value" style="color:var(--cyan)">94.2%</div><div class="kpi-change"><span class="dn">↑ 0.4%</span> after last retrain</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div><div class="kpi-label">MAPE</div><div class="kpi-value" style="color:var(--green)">5.8%</div><div class="kpi-change">Mean abs % error</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue)"></div><div class="kpi-label">AUC-ROC</div><div class="kpi-value" style="color:var(--blue)">0.967</div><div class="kpi-change">Binary classification</div></div>
+    <div class="kpi"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber)"></div><div class="kpi-label">Inference Time</div><div class="kpi-value" style="color:var(--amber)">18ms</div><div class="kpi-change">p95 latency</div></div>
+  </div>
+
+  <div class="g3 mb16">
+    <div class="card">
+      <div class="card-title">Architecture</div>
+      <table class="dt">
+        <tbody>
+          <tr><td>Primary Model</td><td class="cyan">LSTM (2 layers, 128 units)</td></tr>
+          <tr><td>Secondary</td><td class="cyan">ARIMA(2,1,2)</td></tr>
+          <tr><td>Ensemble</td><td class="cyan">Gradient Boosting</td></tr>
+          <tr><td>Input Features</td><td class="cyan">28 variables</td></tr>
+          <tr><td>Lookback Window</td><td class="cyan">168 hours (7d)</td></tr>
+          <tr><td>Forecast Horizon</td><td class="cyan">48 hours</td></tr>
+          <tr><td>Training Samples</td><td class="cyan">1.84M records</td></tr>
+          <tr><td>Batch Size</td><td class="cyan">256</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Training Status</div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px"><span>Epoch progress</span><span class="mono" id="epoch-lbl" style="font-family:var(--font-mono);color:var(--cyan)">47 / 50</span></div>
+        <div class="prog-track"><div class="prog-fill" id="epoch-bar" style="width:94%"></div></div>
+      </div>
+      <table class="dt">
+        <tbody>
+          <tr><td>Train Loss</td><td class="cyan" id="train-loss">0.0186</td></tr>
+          <tr><td>Val Loss</td><td class="cyan" id="val-loss">0.0214</td></tr>
+          <tr><td>Learning Rate</td><td class="cyan">1e-4</td></tr>
+          <tr><td>Optimizer</td><td class="cyan">Adam</td></tr>
+          <tr><td>Last Trained</td><td class="cyan">2h 14m ago</td></tr>
+          <tr><td>Status</td><td><span class="badge badge-low">Deployed ✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Training Log</div>
+      <div class="train-log" id="train-log"></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">Loss Curves</div>
+      <div class="ch" style="height:180px"><canvas id="ch-loss"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Predicted vs Actual</div>
+      <div class="ch" style="height:180px"><canvas id="ch-pva"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Feature Importance</div>
+      <div class="ch" style="height:180px"><canvas id="ch-feat"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SETTINGS PAGE
+═══════════════════════════════════════════════ -->
+<div class="page" id="page-settings">
+<div class="page-inner">
+  <div class="ph"><div><div class="ph-title">Settings</div><div class="ph-sub">System configuration & preferences</div></div></div>
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Alert Thresholds</div>
+        <div class="sim-slider-row" style="margin-bottom:12px"><span class="sim-label">Medium threshold</span><input type="range" min="20" max="60" value="35" id="thr-med" oninput="document.getElementById('tv-med').textContent=this.value+'%'"><span class="sim-val" id="tv-med">35%</span></div>
+        <div class="sim-slider-row" style="margin-bottom:12px"><span class="sim-label">High threshold</span><input type="range" min="50" max="90" value="70" id="thr-high" oninput="document.getElementById('tv-high').textContent=this.value+'%'"><span class="sim-val" id="tv-high">70%</span></div>
+        <div class="sim-slider-row"><span class="sim-label">Critical threshold</span><input type="range" min="70" max="100" value="90" id="thr-crit" oninput="document.getElementById('tv-crit').textContent=this.value+'%'"><span class="sim-val" id="tv-crit">90%</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Notification Settings</div>
+        <table class="dt">
+          <tbody>
+            <tr><td>Voice Alerts</td><td><button class="btn btn-sm" id="voice-toggle-btn" onclick="toggleVoice()">Enable</button></td></tr>
+            <tr><td>Email Notifications</td><td><button class="btn btn-sm">Configure</button></td></tr>
+            <tr><td>SMS Alerts</td><td><button class="btn btn-sm">Configure</button></td></tr>
+            <tr><td>Webhook URL</td><td><input class="inp" style="width:180px" placeholder="https://..."></td></tr>
+            <tr><td>Alert Cooldown</td><td><select class="inp" style="width:120px"><option>5 min</option><option>10 min</option><option>30 min</option></select></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">Data Sources</div>
+        <table class="dt">
+          <tbody>
+            <tr><td>Google Maps API</td><td><span class="badge badge-low">Connected</span></td></tr>
+            <tr><td>OpenStreetMap</td><td><span class="badge badge-low">Connected</span></td></tr>
+            <tr><td>Weather API</td><td><span class="badge badge-low">Connected</span></td></tr>
+            <tr><td>IoT Sensor Feed</td><td><span class="badge badge-low">Connected</span></td></tr>
+            <tr><td>City Traffic API</td><td><span class="badge badge-medium">Degraded</span></td></tr>
+            <tr><td>Event Calendar</td><td><span class="badge badge-info">Optional</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">System Config</div>
+        <table class="dt">
+          <tbody>
+            <tr><td>Refresh Rate</td><td><select class="inp" style="width:120px"><option>5s</option><option>10s</option><option>30s</option></select></td></tr>
+            <tr><td>Data Retention</td><td><select class="inp" style="width:120px"><option>90 days</option><option>180 days</option><option>1 year</option></select></td></tr>
+            <tr><td>Map Provider</td><td><select class="inp" style="width:120px"><option>OpenStreetMap</option><option>Google Maps</option></select></td></tr>
+            <tr><td>Theme</td><td><button class="btn btn-sm" onclick="toggleTheme()">Toggle Light/Dark</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-close" onclick="closeToast()">✕</div>
+  <div class="toast-title" id="toast-title">Alert</div>
+  <div class="toast-body" id="toast-body">Message</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const SEGMENTS = [
+  {id:'S001',name:'Connaught Place Ring',x:0.48,y:0.3,zone:'Central'},
+  {id:'S002',name:'NH-48 Airport Corridor',x:0.18,y:0.55,zone:'West'},
+  {id:'S003',name:'Ring Road North',x:0.38,y:0.18,zone:'North'},
+  {id:'S004',name:'Noida Expressway',x:0.78,y:0.22,zone:'East'},
+  {id:'S005',name:'DND Flyway',x:0.8,y:0.48,zone:'East'},
+  {id:'S006',name:'MG Road Gurugram',x:0.35,y:0.78,zone:'South'},
+  {id:'S007',name:'Outer Ring Road',x:0.6,y:0.5,zone:'South'},
+  {id:'S008',name:'Mehrauli-Badarpur',x:0.62,y:0.72,zone:'South'},
+  {id:'S009',name:'GT Karnal Road',x:0.22,y:0.2,zone:'North'},
+  {id:'S010',name:'Mathura Road',x:0.72,y:0.75,zone:'South'},
+  {id:'S011',name:'Rohtak Road',x:0.1,y:0.38,zone:'West'},
+  {id:'S012',name:'Barapullah Elevated',x:0.55,y:0.35,zone:'Central'},
+  {id:'S013',name:'Punjabi Bagh',x:0.25,y:0.42,zone:'West'},
+  {id:'S014',name:'Saket Link Road',x:0.5,y:0.68,zone:'South'},
+  {id:'S015',name:'Vasant Kunj',x:0.3,y:0.62,zone:'South'},
+  {id:'S016',name:'Dwarka Expressway',x:0.12,y:0.72,zone:'West'},
+];
+
+const SENSOR_TYPES = ['Speed','Volume','Density','Queue Length','Occupancy','Weather'];
+const INCIDENT_TYPES = ['Accident','Breakdown','Construction','Event','Flooding','Signal Failure'];
+
+let state = {
+  segments: {},
+  alerts: [],
+  charts: {},
+  mapZoom: 1,
+  mapFilter: 'all',
+  voiceEnabled: false,
+  simData: null,
+  simChart: null,
+  trainInterval: null,
+};
+
+function rnd(a,b){return a+Math.random()*(b-a)}
+function rndInt(a,b){return Math.floor(rnd(a,b+1))}
+function rndEl(arr){return arr[rndInt(0,arr.length-1)]}
+function rndLvl(){const r=Math.random();return r<0.4?'low':r<0.7?'medium':r<0.9?'high':'critical'}
+function spd(lvl){return{low:rndInt(55,80),medium:rndInt(28,50),high:rndInt(10,26),critical:rndInt(3,12)}[lvl]}
+function veh(lvl){return{low:rndInt(50,120),medium:rndInt(130,200),high:rndInt(210,310),critical:rndInt(300,420)}[lvl]}
+function congPct(lvl){return{low:rndInt(8,29),medium:rndInt(30,69),high:rndInt(70,89),critical:rndInt(90,100)}[lvl]}
+
+function initState(){
+  SEGMENTS.forEach(s=>{
+    const lvl=rndLvl();
+    state.segments[s.id]={level:lvl,speed:spd(lvl),vehicles:veh(lvl),congestion:congPct(lvl),trend:rndEl(['rising','falling','stable'])};
+  });
+  state.alerts = generateAlerts();
+}
+
+function generateAlerts(){return[
+  {id:1,sev:'critical',title:'GRIDLOCK: NH-48 Airport Rd',desc:'Congestion at 97% — full corridor blocked. Emergency services requested.',route:'NH-48 Airport Corridor',zone:'West',time:'just now',icon:'🚨',resolved:false},
+  {id:2,sev:'high',title:'Accident: Ring Road North',desc:'2-vehicle collision blocking 2 of 3 lanes. Estimated clearance: 35 min.',route:'Ring Road North',zone:'North',time:'4 min ago',icon:'💥',resolved:false},
+  {id:3,sev:'high',title:'Flash congestion: CP Ring',desc:'Post-event dispersal — saturation at 4 key intersections.',route:'Connaught Place Ring',zone:'Central',time:'9 min ago',icon:'⚡',resolved:false},
+  {id:4,sev:'high',title:'Signal Failure: Noida Expy',desc:'Traffic signal malfunction at km 12. Manual control deployed.',route:'Noida Expressway',zone:'East',time:'14 min ago',icon:'🔴',resolved:false},
+  {id:5,sev:'medium',title:'Heavy rain: DND Flyway',desc:'Wet conditions reducing average speed by 38%. Minor flooding reported.',route:'DND Flyway',zone:'East',time:'22 min ago',icon:'🌧',resolved:false},
+  {id:6,sev:'medium',title:'Construction: MG Road',desc:'Single-lane restriction until 22:00. Expect 15 min additional delay.',route:'MG Road Gurugram',zone:'South',time:'38 min ago',icon:'🚧',resolved:false},
+  {id:7,sev:'medium',title:'Bus breakdown: Outer Ring',desc:'BRTS bus blocking shoulder lane. Recovery vehicle en route.',route:'Outer Ring Road',zone:'South',time:'51 min ago',icon:'🚌',resolved:false},
+  {id:8,sev:'low',title:'School zone: Mathura Road',desc:'School dispersal causing temporary slowdown. Returning to normal.',route:'Mathura Road',zone:'South',time:'1h 4m ago',icon:'🏫',resolved:false},
+];}
+
+const ROUTES_LIST = [
+  {name:'Route A — Via Ring Road',time:26,delay:3,dist:17.4,cong:21,color:'#00e676',segs:['Ring Road N','NH-24 Link','Outer Ring','Airport Link'],eco:true},
+  {name:'Route B — NH-48 Direct',time:42,delay:20,dist:15.2,cong:82,color:'#ff3d5a',segs:['NH-48 Main','Delhi Bypass','T2 Access']},
+  {name:'Route C — Via Dwarka',time:36,delay:12,dist:22.8,cong:48,color:'#ffab00',segs:['Dwarka Expy','Palam Rd','NH-248A','T3 Access']},
+];
+
+const SENSORS_DATA = Array.from({length:16},(_,i)=>({
+  id:`SNS-${(i+1).toString().padStart(3,'0')}`,
+  location:rndEl(['NH-48','Ring Rd','CP Junction','Noida Expy','DND','MG Rd']),
+  type:rndEl(SENSOR_TYPES),
+  active:Math.random()>0.08,
+}));
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function nav(page, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+page);
+  if(pg) pg.classList.add('active');
+  if(el) el.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')?.includes(`'${page}'`))n.classList.add('active');});
+  // Lazy init page content
+  pageInit[page]?.();
+}
+
+const pageInit = {
+  livemap: ()=>{ renderMap('map-canvas2','map-tt2',true); renderSegFeed(); renderSpeedDistChart(); },
+  alerts: ()=>{ renderAlerts(); initAlertCharts(); },
+  iot: ()=>{ renderSensors(); initSensorChart(); },
+  predict: ()=>{ initHistoryCharts(); document.getElementById('p-date').value=todayStr(); },
+  routes: ()=>{ findRoutes(); },
+  heatmap: ()=>{ renderHeatmap(); initHeatmapCharts(); },
+  simulate: ()=>{ updateSim(); },
+  analytics: ()=>{ initAnalyticsCharts(); renderAdminTable(); },
+  model: ()=>{ initModelCharts(); renderTrainLog(); },
+  settings: ()=>{},
+};
+
+function todayStr(){return new Date().toISOString().split('T')[0];}
+
+// ═══════════════════════════════════════════════════════
+// MAP ENGINE
+// ═══════════════════════════════════════════════════════
+const ROADS = [
+  // horizontal
+  {x1:0,y1:0.25,x2:1,y2:0.25},{x1:0,y1:0.5,x2:1,y2:0.5},{x1:0,y1:0.75,x2:1,y2:0.75},
+  // vertical
+  {x1:0.2,y1:0,x2:0.2,y2:1},{x1:0.4,y1:0,x2:0.4,y2:1},{x1:0.6,y1:0,x2:0.6,y2:1},{x1:0.8,y1:0,x2:0.8,y2:1},
+  // diagonals
+  {x1:0.1,y1:0,x2:0.9,y2:1},{x1:0.9,y1:0,x2:0.1,y2:1},
+];
+
+const LEVEL_COLORS = {low:'#00e676',medium:'#ffab00',high:'#ff3d5a',critical:'#ff1744'};
+const LEVEL_GLOW = {low:'rgba(0,230,118,',medium:'rgba(255,171,0,',high:'rgba(255,61,90,',critical:'rgba(255,23,68,'};
+
+function drawMap(canvasId, ttId, large=false){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  const W = canvas.width = rect.width || canvas.offsetWidth;
+  const H = canvas.height = rect.height || canvas.offsetHeight;
+  if(!W||!H) return;
+
+  // Background
+  ctx.fillStyle = '#0f1422';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Roads
+  ROADS.forEach(r=>{
+    ctx.beginPath();
+    ctx.moveTo(r.x1*W,r.y1*H);ctx.lineTo(r.x2*W,r.y2*H);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=large?10:7;ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=large?8:5;ctx.stroke();
+  });
+
+  // Segments
+  const sz = large?12:9;
+  SEGMENTS.forEach(seg=>{
+    const d = state.segments[seg.id];
+    if(!d) return;
+    if(state.mapFilter!=='all'&&d.level!==state.mapFilter) return;
+    const x=seg.x*W, y=seg.y*H;
+    const col = LEVEL_COLORS[d.level];
+    const glow = LEVEL_GLOW[d.level];
+
+    // Glow
+    const grad=ctx.createRadialGradient(x,y,0,x,y,sz*2.5);
+    grad.addColorStop(0,glow+'0.35)');grad.addColorStop(1,glow+'0)');
+    ctx.beginPath();ctx.arc(x,y,sz*2.5,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+
+    // Node
+    ctx.beginPath();ctx.arc(x,y,sz,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle='#0f1422';ctx.lineWidth=2;ctx.stroke();
+
+    // Critical pulse ring
+    if(d.level==='critical'){
+      const t = Date.now()/600;
+      const r2=sz+4+Math.sin(t)*3;
+      ctx.beginPath();ctx.arc(x,y,r2,0,Math.PI*2);
+      ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.5+Math.sin(t)*0.4;ctx.stroke();ctx.globalAlpha=1;
+    }
+
+    // Label (large map only)
+    if(large){
+      ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='10px JetBrains Mono,monospace';
+      ctx.textAlign='center';ctx.fillText(seg.id,x,y+sz+12);
+    }
+  });
+
+  canvas._needsRedraw = true;
+}
+
+function setupMapInteraction(canvasId, ttId){
+  const canvas = document.getElementById(canvasId);
+  const tt = document.getElementById(ttId);
+  if(!canvas||!tt) return;
+  canvas.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)/rect.width;
+    const my=(e.clientY-rect.top)/rect.height;
+    let hit=null;
+    SEGMENTS.forEach(seg=>{
+      const dx=seg.x-mx, dy=seg.y-my;
+      if(Math.sqrt(dx*dx+dy*dy)<0.05) hit=seg;
+    });
+    if(hit){
+      const d=state.segments[hit.id];
+      const col=LEVEL_COLORS[d.level];
+      tt.innerHTML=`<div style="font-weight:700;color:var(--text);margin-bottom:6px">${hit.name}</div>
+        <div style="color:var(--text2);font-size:10px;font-family:var(--font-mono);margin-bottom:4px">${hit.id} · ${hit.zone}</div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--text2);margin-bottom:8px">
+          <span>🚗 ${d.speed} km/h</span><span>🚦 ${d.vehicles}/km</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:10px;font-family:var(--font-mono);color:var(--text3)">Congestion</span>
+          <span style="font-size:13px;font-weight:800;color:${col}">${d.congestion}%</span>
+        </div>
+        <div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:4px"><div style="width:${d.congestion}%;height:100%;background:${col};border-radius:2px"></div></div>
+        <div style="font-size:9px;font-family:var(--font-mono);color:var(--text3);margin-top:6px">Trend: ${d.trend} ${d.trend==='rising'?'↑':d.trend==='falling'?'↓':'→'}</div>`;
+      tt.style.left=(e.clientX-rect.left+12)+'px';
+      tt.style.top=(e.clientY-rect.top+12)+'px';
+      tt.classList.add('show');
+      canvas.style.cursor='pointer';
+    } else {
+      tt.classList.remove('show');
+      canvas.style.cursor='crosshair';
+    }
+  });
+  canvas.addEventListener('mouseleave',()=>tt.classList.remove('show'));
+}
+
+function renderMap(canvasId,ttId,large=false){
+  drawMap(canvasId,ttId,large);
+  setupMapInteraction(canvasId,ttId);
+}
+
+function filterMapLevel(lvl){
+  state.mapFilter=lvl;
+  drawMap('map-canvas','map-tt');
+  drawMap('map-canvas2','map-tt2',true);
+}
+function cycleMapLayer(){
+  const btn=document.getElementById('layer-btn');
+  const layers=['🌡 Heatmap Layer','🔵 Volume Layer','🟡 Speed Layer','⚪ Default Layer'];
+  btn._idx=(btn._idx||0)+1;
+  btn.textContent=layers[btn._idx%layers.length];
+  toast('Layer Changed',layers[btn._idx%layers.length]+' active','info');
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD CHARTS
+// ═══════════════════════════════════════════════════════
+function initDashCharts(){
+  // Volume
+  mkChart('ch-volume','line',{
+    labels:Array.from({length:24},(_,i)=>i+':00'),
+    datasets:[{label:'Vehicles',data:Array.from({length:24},(_,i)=>{const h=i;const p=(h>=8&&h<=10)||(h>=17&&h<=20);return p?rndInt(2000,2800):rndInt(300,1400);}),borderColor:'#00e5c8',backgroundColor:'rgba(0,229,200,0.06)',fill:true,tension:0.4,pointRadius:0,borderWidth:2}]
+  },{scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{ticks:{color:'#3d4760'}}},plugins:{legend:{display:false}}});
+
+  // Hourly congestion
+  const h=Array.from({length:24},(_,i)=>i);
+  const today=h.map(i=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);const m=i>=11&&i<=13;return p?rndInt(62,88):m?rndInt(38,55):rndInt(8,28);});
+  const avg=h.map(i=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);return p?65:i>=11&&i<=13?42:15;});
+  mkChart('ch-hourly','line',{
+    labels:h.map(i=>i+':00'),
+    datasets:[{label:'Today',data:today,borderColor:'#2979ff',tension:0.4,pointRadius:0,fill:false},{label:'7d Avg',data:avg,borderColor:'#3d4760',tension:0.4,pointRadius:0,borderDash:[5,5],fill:false}]
+  },{scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}},plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}}});
+
+  // Distribution
+  mkChart('ch-dist','doughnut',{
+    labels:['Low','Medium','High','Critical'],
+    datasets:[{data:[42,33,18,7],backgroundColor:['rgba(0,230,118,0.8)','rgba(255,171,0,0.8)','rgba(255,61,90,0.8)','rgba(255,23,68,0.8)'],borderColor:'transparent',borderWidth:0}]
+  },{cutout:'72%',plugins:{legend:{position:'right',labels:{color:'#7a86a0',font:{size:11},padding:12}}}});
+}
+
+function renderDashAlerts(){
+  const el=document.getElementById('dash-alerts');
+  if(!el) return;
+  el.innerHTML=state.alerts.filter(a=>!a.resolved).slice(0,5).map(a=>`
+    <div class="alert-row">
+      <div class="alert-sev ${a.sev}"></div>
+      <div style="font-size:16px;margin-top:1px">${a.icon}</div>
+      <div class="alert-content">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-meta">${a.route} · ${a.time}</div>
+      </div>
+      <span class="badge badge-${a.sev==='critical'?'critical':a.sev==='high'?'high':a.sev==='medium'?'medium':'low'}">${a.sev}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════════════
+function renderAlerts(){
+  const el=document.getElementById('alerts-list');
+  if(!el) return;
+  const f=document.getElementById('alert-sev-filter')?.value||'all';
+  const filtered=state.alerts.filter(a=>!a.resolved&&(f==='all'||a.sev===f));
+  el.innerHTML = filtered.length ? filtered.map(a=>`
+    <div class="alert-row fade-in" id="alrt-${a.id}">
+      <div class="alert-sev ${a.sev}"></div>
+      <div style="font-size:18px;margin-top:1px;flex-shrink:0">${a.icon}</div>
+      <div class="alert-content">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-desc">${a.desc}</div>
+        <div class="alert-meta">${a.zone} · ${a.route} · ${a.time}</div>
+      </div>
+      <div class="alert-actions">
+        <span class="badge badge-${a.sev==='critical'?'critical':a.sev==='high'?'high':a.sev==='medium'?'medium':'low'}">${a.sev.toUpperCase()}</span>
+        <button class="btn btn-sm" onclick="resolveAlert(${a.id})">✓ Resolve</button>
+        <button class="btn btn-sm" onclick="escalateAlert(${a.id})">↑ Escalate</button>
+      </div>
+    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">No active alerts</div>';
+
+  // Update counts
+  const counts={critical:0,high:0,medium:0,low:0};
+  state.alerts.filter(a=>!a.resolved).forEach(a=>counts[a.sev]=(counts[a.sev]||0)+1);
+  setEl('ac-critical',counts.critical);setEl('ac-high',counts.high);setEl('ac-med',counts.medium);
+  setEl('nb-alerts',counts.critical+counts.high);
+  setEl('kpi-alerts',counts.critical+counts.high);
+  setEl('ts-crit',counts.critical);
+}
+
+function resolveAlert(id){
+  const a=state.alerts.find(x=>x.id===id);
+  if(a){a.resolved=true;renderAlerts();renderDashAlerts();toast('Alert Resolved',`"${a.title}" marked resolved`,'low');}
+}
+function escalateAlert(id){
+  const a=state.alerts.find(x=>x.id===id);
+  if(a&&a.sev!=='critical'){a.sev='critical';renderAlerts();toast('Alert Escalated',`"${a.title}" escalated to CRITICAL`,'critical');}
+}
+function clearAllAlerts(){state.alerts.forEach(a=>a.resolved=true);renderAlerts();renderDashAlerts();}
+
+function injectAlert(){
+  const zones=['North','South','East','West','Central'];
+  const segs=rndEl(SEGMENTS);
+  const sevs=['critical','high','high','medium'];
+  const sev=rndEl(sevs);
+  const types=['Flash Congestion','Signal Failure','Major Accident','Road Flooding','Gas Main Break'];
+  const type=rndEl(types);
+  const newAlert={id:Date.now(),sev,title:`${sev==='critical'?'CRITICAL':'Alert'}: ${type}`,desc:`${type} detected at ${segs.name}. Immediate response required.`,route:segs.name,zone:segs.zone,time:'just now',icon:sev==='critical'?'🚨':'⚠️',resolved:false};
+  state.alerts.unshift(newAlert);
+  renderAlerts();renderDashAlerts();
+  toast(`🚨 ${sev.toUpperCase()} Alert`,`${type} — ${segs.name}`,sev);
+}
+
+function initAlertCharts(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  mkChart('ch-alert-trend','bar',{
+    labels:days,
+    datasets:[
+      {label:'Critical',data:days.map(()=>rndInt(0,3)),backgroundColor:'rgba(255,23,68,0.7)',borderRadius:3},
+      {label:'High',data:days.map(()=>rndInt(1,6)),backgroundColor:'rgba(255,61,90,0.5)',borderRadius:3},
+      {label:'Medium',data:days.map(()=>rndInt(2,10)),backgroundColor:'rgba(255,171,0,0.5)',borderRadius:3},
+    ]
+  },{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{stacked:true,ticks:{color:'#3d4760'}},y:{stacked:true,ticks:{color:'#3d4760'}}}});
+
+  mkChart('ch-resp-time','bar',{
+    labels:['<5m','5-10m','10-20m','20-30m','>30m'],
+    datasets:[{label:'Incidents',data:[8,15,24,14,6],backgroundColor:'rgba(0,229,200,0.6)',borderRadius:3}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',font:{size:10}}},y:{ticks:{color:'#3d4760'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// IOT SENSORS
+// ═══════════════════════════════════════════════════════
+function renderSensors(){
+  const grid=document.getElementById('sensor-grid');
+  const table=document.getElementById('sensor-table');
+  if(!grid) return;
+  grid.innerHTML = SENSORS_DATA.slice(0,8).map(s=>{
+    const val = s.type==='Speed'?rndInt(20,80):s.type==='Volume'?rndInt(100,400):rndInt(10,100);
+    const unit = {Speed:'km/h',Volume:'veh/h',Density:'veh/km','Queue Length':'m',Occupancy:'%',Weather:'°C'}[s.type]||'';
+    const col = val>70?'var(--red)':val>40?'var(--amber)':'var(--cyan)';
+    return `<div class="sensor-card">
+      <div class="sensor-id">${s.id} · ${s.type}</div>
+      <div class="sensor-val" style="color:${col}">${val}</div>
+      <div class="sensor-unit">${unit} — ${s.location}</div>
+      <div class="sensor-status">
+        <div class="sensor-dot" style="background:${s.active?'var(--green)':'var(--red)'}"></div>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${s.active?'Online':'Offline'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  if(table){
+    const tbody=document.getElementById('sensor-table')||table.querySelector('tbody');
+    table.innerHTML=`<thead><tr><th>ID</th><th>Location</th><th>Type</th><th>Reading</th><th>Status</th></tr></thead>
+    <tbody>${SENSORS_DATA.map(s=>{
+      const v=s.type==='Speed'?rndInt(20,80):rndInt(100,400);
+      return`<tr><td class="mono">${s.id}</td><td>${s.location}</td><td>${s.type}</td><td class="cyan mono">${v}</td><td>${s.active?'<span class="badge badge-low">Online</span>':'<span class="badge badge-high">Offline</span>'}</td></tr>`;
+    }).join('')}</tbody>`;
+  }
+}
+
+function initSensorChart(){
+  const pts=60;
+  const t=Array.from({length:pts},(_,i)=>(i+':00'));
+  mkChart('ch-sensor-stream','line',{
+    labels:t,
+    datasets:[
+      {label:'Speed (km/h)',data:Array.from({length:pts},()=>rndInt(20,80)),borderColor:'#00e5c8',tension:0.3,pointRadius:0,borderWidth:1.5},
+      {label:'Volume',data:Array.from({length:pts},()=>rndInt(50,300)),borderColor:'#2979ff',tension:0.3,pointRadius:0,borderWidth:1.5},
+      {label:'Density',data:Array.from({length:pts},()=>rndInt(20,200)),borderColor:'#ffab00',tension:0.3,pointRadius:0,borderWidth:1.5},
+    ]
+  },{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{display:false}},y:{ticks:{color:'#3d4760'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// PREDICTION
+// ═══════════════════════════════════════════════════════
+function runPrediction(){
+  const origin=document.getElementById('p-origin').value||'Origin';
+  const dest=document.getElementById('p-dest').value||'Dest';
+  const timeVal=document.getElementById('p-time').value||'09:00';
+  const hour=parseInt(timeVal);
+  const isPeak=(hour>=8&&hour<=10)||(hour>=17&&hour<=20);
+  const isMed=(hour>=11&&hour<=13)||(hour>=15&&hour<=16);
+  const congPct=isPeak?rndInt(68,92):isMed?rndInt(38,60):rndInt(10,32);
+  const lvl=congPct>=80?'CRITICAL':congPct>=60?'HIGH':congPct>=35?'MEDIUM':'LOW';
+  const lvlKey=lvl.toLowerCase()==='critical'?'critical':lvl.toLowerCase();
+  const col=LEVEL_COLORS[lvlKey]||LEVEL_COLORS['low'];
+  const delay=isPeak?rndInt(15,28):isMed?rndInt(7,14):rndInt(1,6);
+  const density=isPeak?rndInt(240,340):isMed?rndInt(140,210):rndInt(60,130);
+  const conf=rndInt(82,96);
+
+  const el=document.getElementById('pred-result');
+  el.className='show';
+  el.innerHTML=`
+    <div class="pred-header fade-in">
+      <div class="cong-ring">
+        <svg viewBox="0 0 90 90"><circle cx="45" cy="45" r="38" fill="none" stroke="var(--bg4)" stroke-width="8"/>
+        <circle cx="45" cy="45" r="38" fill="none" stroke="${col}" stroke-width="8"
+          stroke-dasharray="${2*Math.PI*38}" stroke-dashoffset="${2*Math.PI*38*(1-congPct/100)}"
+          stroke-linecap="round" transform="rotate(-90 45 45)"/></svg>
+        <div class="cong-ring-label"><div class="cong-ring-pct" style="color:${col}">${congPct}%</div><div class="cong-ring-sub">CONGEST</div></div>
+      </div>
+      <div class="pred-details">
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:2px">PREDICTED LEVEL</div>
+        <div class="pred-level-badge" style="color:${col}">${lvl}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">${origin} → ${dest}</div>
+        <div class="pred-stats-row">
+          <div class="pred-stat"><div class="pred-stat-val" style="color:${col}">+${delay}m</div><div class="pred-stat-label">Delay</div></div>
+          <div class="pred-stat"><div class="pred-stat-val">${density}</div><div class="pred-stat-label">Veh/km</div></div>
+          <div class="pred-stat"><div class="pred-stat-val" style="color:var(--green)">${conf}%</div><div class="pred-stat-label">Confidence</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">RECOMMENDED ACTION</div>
+        ${congPct>=60?`<div style="background:rgba(255,61,90,0.1);border:1px solid rgba(255,61,90,0.2);border-radius:8px;padding:10px;font-size:12px;color:var(--red);max-width:180px">⚠ Avoid this route.<br>Use alternative via Ring Road (+3 min only).</div>`:
+        `<div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:8px;padding:10px;font-size:12px;color:var(--green);max-width:180px">✓ Route is clear.<br>Proceed as planned.</div>`}
+      </div>
+    </div>
+    <div class="card mb16" style="margin-bottom:14px">
+      <div class="card-title">48-Hour Congestion Forecast</div>
+      <div class="ch" style="height:130px"><canvas id="ch-forecast"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Hourly Breakdown (Next 24h)</div>
+      <div class="hourly-grid" id="hourly-grid"></div>
+    </div>`;
+
+  // Hourly grid
+  const hgEl=document.getElementById('hourly-grid');
+  if(hgEl){
+    hgEl.innerHTML=Array.from({length:24},(_,i)=>{
+      const h=(hour+i)%24;
+      const p=(h>=8&&h<=10)||(h>=17&&h<=20);
+      const m=(h>=11&&h<=13);
+      const v=p?rndInt(65,90):m?rndInt(35,58):rndInt(8,30);
+      const c=v>=70?'#ff3d5a':v>=35?'#ffab00':'#00e676';
+      const lvlStr=v>=70?'HIGH':v>=35?'MED':'LOW';
+      return`<div class="hour-cell ${v>=70?'peak':v>=35?'med':''}">
+        <div class="hour-label">${h}:00</div>
+        <div class="hour-val" style="color:${c}">${v}%</div>
+        <div class="hour-bar" style="background:${c};opacity:0.4"></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Forecast chart
+  const labels=[],data=[];
+  for(let i=0;i<48;i++){const h=(hour+i)%24;const p=(h>=8&&h<=10)||(h>=17&&h<=20);labels.push(i%6===0?h+':00':'');data.push(p?rndInt(62,90):h>=11&&h<=13?rndInt(35,58):rndInt(8,30));}
+  mkChart('ch-forecast','line',{labels,datasets:[{data,borderColor:col,backgroundColor:col.replace(')',',0.1)').replace('rgb','rgba')||'rgba(0,229,200,0.08)',fill:true,tension:0.4,pointRadius:0,borderWidth:2}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+
+  toast('Prediction Ready',`${lvl} congestion (${congPct}%) — ${conf}% confidence`,lvlKey);
+}
+
+function initHistoryCharts(){
+  const hrs=Array.from({length:24},(_,i)=>i+':00');
+  mkChart('ch-hist-route','line',{labels:hrs,datasets:[
+    {label:'Mon',data:hrs.map((_,i)=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);return p?rndInt(60,85):rndInt(10,35);}),borderColor:'#2979ff',tension:0.4,pointRadius:0},
+    {label:'Tue',data:hrs.map((_,i)=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);return p?rndInt(55,80):rndInt(8,30);}),borderColor:'#00e5c8',tension:0.4,pointRadius:0},
+    {label:'Today',data:hrs.map((_,i)=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);return p?rndInt(65,92):rndInt(12,38);}),borderColor:'#ff3d5a',tension:0.4,pointRadius:0,borderWidth:2},
+  ]},{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+
+  mkChart('ch-weekly','bar',{
+    labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    datasets:[{label:'Avg Congestion',data:[72,68,74,71,85,45,32],backgroundColor:d=>{const v=d.parsed?.y||d;return v>70?'rgba(255,61,90,0.7)':v>50?'rgba(255,171,0,0.7)':'rgba(0,230,118,0.7)';},borderRadius:4}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760'}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// ROUTES
+// ═══════════════════════════════════════════════════════
+function findRoutes(){
+  const pref=document.getElementById('r-pref')?.value||'fastest';
+  let sorted=[...ROUTES_LIST].sort((a,b)=>pref==='fastest'?a.time-b.time:pref==='least'?a.cong-b.cong:pref==='eco'?a.dist-b.dist:(a.time*0.5+a.cong*0.5)-(b.time*0.5+b.cong*0.5));
+  const el=document.getElementById('routes-list');
+  if(!el) return;
+  el.innerHTML=sorted.map((r,i)=>`
+    <div class="route-card ${i===0?'best':''}">
+      <div class="route-header">
+        <div class="route-name">${r.name}</div>
+        <span class="badge ${r.cong<35?'badge-low':r.cong<70?'badge-medium':'badge-high'}">${r.cong<35?'LOW':r.cong<70?'MED':'HIGH'}</span>
+      </div>
+      <div class="route-metrics">
+        <div class="route-metric">⏱ <span>${r.time} min</span></div>
+        <div class="route-metric">+<span>${r.delay}m</span> delay</div>
+        <div class="route-metric">📍 <span>${r.dist} km</span></div>
+        <div class="route-metric">🚦 <span style="color:${r.cong<35?'var(--green)':r.cong<70?'var(--amber)':'var(--red)'}">${r.cong}%</span></div>
+      </div>
+      <div class="route-path-viz">${r.segs.map(()=>`<div class="path-seg" style="background:${r.color};opacity:${0.3+Math.random()*0.5}"></div>`).join('')}</div>
+      <div class="route-waypoints">${r.segs.join(' → ')}</div>
+    </div>`).join('');
+
+  // Compare table
+  const comp=document.getElementById('route-compare');
+  if(comp){
+    comp.innerHTML=`<div class="compare-grid">
+      <div class="compare-cell header"></div>
+      ${sorted.map((r,i)=>`<div class="compare-cell header ${i===0?'best-col':''}">${r.name.split('—')[0].trim()}</div>`).join('')}
+      ${[['Travel Time',r=>r.time+' min',true],['Delay',r=>'+'+r.delay+' min',true],['Distance',r=>r.dist+' km',false],['Congestion',r=>r.cong+'%',true],['Eco Score',r=>Math.round(100-r.cong*0.4-r.time*0.3)+'%',false]].map(([label,fn,lower])=>{
+        const vals=sorted.map(fn);
+        const best=lower?vals.reduce((a,b)=>parseFloat(a)<parseFloat(b)?a:b):vals.reduce((a,b)=>parseFloat(a)>parseFloat(b)?a:b);
+        return`<div class="compare-cell row-label">${label}</div>${vals.map((v,i)=>`<div class="compare-cell ${i===0?'best-col':''} ${v===best?'winner':''}">${v}</div>`).join('')}`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Route chart
+  mkChart('ch-routes','bar',{
+    labels:sorted.map(r=>r.name.split('—')[0].trim()),
+    datasets:[
+      {label:'Time (min)',data:sorted.map(r=>r.time),backgroundColor:'rgba(41,121,255,0.7)',borderRadius:4},
+      {label:'Congestion %',data:sorted.map(r=>r.cong),backgroundColor:sorted.map(r=>r.cong<35?'rgba(0,230,118,0.7)':r.cong<70?'rgba(255,171,0,0.7)':'rgba(255,61,90,0.7)'),borderRadius:4},
+    ]
+  },{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{color:'#3d4760',font:{size:10}}},y:{ticks:{color:'#3d4760'}}}});
+
+  // Route detail
+  const pts=20;
+  mkChart('ch-route-detail','line',{
+    labels:Array.from({length:pts},(_,i)=>sorted[0].segs[Math.floor(i/pts*sorted[0].segs.length)]||''),
+    datasets:[{label:'Congestion along route',data:Array.from({length:pts},()=>rndInt(10,40)),borderColor:'#00e5c8',backgroundColor:'rgba(0,229,200,0.08)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#00e5c8'}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',font:{size:9},maxTicksLimit:5}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// HEATMAP
+// ═══════════════════════════════════════════════════════
+function renderHeatmap(){
+  const metric=document.getElementById('hm-metric')?.value||'congestion';
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const hours=['00h','03h','06h','09h','12h','15h','18h','21h'];
+  const cols=days.length+1;
+  const grid=document.getElementById('hm-grid');
+  if(!grid) return;
+  grid.style.gridTemplateColumns=`50px repeat(${days.length},1fr)`;
+
+  let html='<div class="hm-header"></div>';
+  days.forEach(d=>html+=`<div class="hm-header">${d}</div>`);
+
+  hours.forEach((h,hi)=>{
+    html+=`<div class="hm-row-label">${h}</div>`;
+    days.forEach((_,di)=>{
+      const isWd=di<5;
+      const isPeak=hi===3||hi===6;
+      const isMorn=hi===2;
+      let val;
+      if(metric==='congestion'){val=isPeak&&isWd?rndInt(70,95):isMorn&&isWd?rndInt(40,65):isPeak?rndInt(30,55):rndInt(5,35);}
+      else if(metric==='speed'){val=isPeak&&isWd?rndInt(15,30):rndInt(40,80);}
+      else{val=isPeak&&isWd?rndInt(200,400):rndInt(50,180);}
+      const norm=metric==='speed'?1-val/80:val/(metric==='volume'?400:100);
+      let bg;
+      if(norm<0.25)bg=`rgba(0,230,118,${0.1+norm})`;
+      else if(norm<0.55)bg=`rgba(255,171,0,${0.15+norm*0.6})`;
+      else bg=`rgba(255,61,90,${0.15+norm*0.8})`;
+      const unit=metric==='speed'?'km/h':metric==='volume'?'veh':'%';
+      html+=`<div class="hm-cell" style="background:${bg}" title="${val}${unit}">${val>30?val:'·'}</div>`;
+    });
+  });
+  grid.innerHTML=html;
+}
+
+function initHeatmapCharts(){
+  mkChart('ch-peak','bar',{
+    labels:Array.from({length:24},(_,i)=>i+':00'),
+    datasets:[{label:'Congestion %',data:Array.from({length:24},(_,i)=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);const m=i>=11&&i<=13;return p?rndInt(65,88):m?rndInt(38,55):rndInt(5,28);}),backgroundColor:Array.from({length:24},(_,i)=>{const p=(i>=8&&i<=10)||(i>=17&&i<=20);const m=i>=11&&i<=13;return p?'rgba(255,61,90,0.75)':m?'rgba(255,171,0,0.75)':'rgba(0,230,118,0.6)';}),borderRadius:3}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+
+  mkChart('ch-dow','bar',{
+    labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    datasets:[{data:[72,68,74,71,85,45,32],backgroundColor:['rgba(255,61,90,0.7)','rgba(255,61,90,0.6)','rgba(255,61,90,0.7)','rgba(255,61,90,0.65)','rgba(255,61,90,0.85)','rgba(255,171,0,0.6)','rgba(0,230,118,0.6)'],borderRadius:4}]
+  },{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760'}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+
+  mkChart('ch-radar','radar',{
+    labels:['North','East','South','West','Central','Peripheral'],
+    datasets:[{label:'Peak',data:[72,45,58,81,90,35],backgroundColor:'rgba(255,61,90,0.12)',borderColor:'#ff3d5a',pointBackgroundColor:'#ff3d5a',pointRadius:4},{label:'Off-peak',data:[28,18,25,34,42,14],backgroundColor:'rgba(0,229,200,0.1)',borderColor:'#00e5c8',pointBackgroundColor:'#00e5c8',pointRadius:4}]
+  },{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{r:{ticks:{display:false},grid:{color:'rgba(255,255,255,0.05)'},pointLabels:{color:'#7a86a0',font:{size:10}}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// SIMULATOR
+// ═══════════════════════════════════════════════════════
+function updateSim(){
+  const veh=parseInt(document.getElementById('sim-veh')?.value||800);
+  const wx=parseInt(document.getElementById('sim-wx')?.value||20);
+  const inc=parseInt(document.getElementById('sim-inc')?.value||1);
+  const evt=parseInt(document.getElementById('sim-evt')?.value||0);
+  const cap=parseInt(document.getElementById('sim-cap')?.value||100);
+  const hour=parseInt(document.getElementById('sim-hour')?.value||8);
+  setEl('sv-veh',veh);setEl('sv-wx',wx+'%');setEl('sv-inc',inc);setEl('sv-evt',evt);setEl('sv-cap',cap+'%');setEl('sv-hour',hour+':00');
+
+  const baseLoad=veh/2000*100;
+  const wxImpact=wx*0.4;
+  const incImpact=inc*8;
+  const evtImpact=evt*12;
+  const capImpact=(100-cap)*0.6;
+  const timeImpact=(hour>=8&&hour<=10)||(hour>=17&&hour<=20)?25:hour>=11&&hour<=13?10:0;
+  const congestion=Math.min(100,Math.round(baseLoad+wxImpact+incImpact+evtImpact+capImpact+timeImpact));
+  const lvl=congestion>=85?'CRITICAL':congestion>=65?'HIGH':congestion>=35?'MEDIUM':'LOW';
+  const lvlKey=lvl.toLowerCase()==='critical'?'critical':'high low medium'.split(' ').find(l=>lvl===l.toUpperCase())||'low';
+  const col=LEVEL_COLORS[lvlKey]||LEVEL_COLORS.low;
+  const delay=Math.round(congestion*0.3+inc*4+evt*6);
+  const speed=Math.max(5,Math.round(80*(1-congestion/120)));
+
+  const res=document.getElementById('sim-result');
+  if(res)res.innerHTML=`
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:4px">SIMULATED CONGESTION</div>
+      <div style="font-size:52px;font-weight:900;font-family:var(--font-head);color:${col};letter-spacing:-2px;line-height:1">${congestion}%</div>
+      <div style="font-size:18px;font-weight:700;color:${col};margin:4px 0">${lvl}</div>
+      <div style="height:6px;background:var(--bg4);border-radius:3px;margin:12px 0;overflow:hidden"><div style="width:${congestion}%;height:100%;background:${col};border-radius:3px;transition:width 0.5s ease"></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div style="background:var(--bg4);border-radius:8px;padding:10px"><div style="font-size:16px;font-weight:700;font-family:var(--font-head);color:${col}">+${delay}m</div><div style="font-size:9px;font-family:var(--font-mono);color:var(--text3)">DELAY</div></div>
+      <div style="background:var(--bg4);border-radius:8px;padding:10px"><div style="font-size:16px;font-weight:700;font-family:var(--font-head)">${speed}</div><div style="font-size:9px;font-family:var(--font-mono);color:var(--text3)">KM/H</div></div>
+      <div style="background:var(--bg4);border-radius:8px;padding:10px"><div style="font-size:16px;font-weight:700;font-family:var(--font-head);color:var(--amber)">${veh}</div><div style="font-size:9px;font-family:var(--font-mono);color:var(--text3)">VEH/H</div></div>
+    </div>`;
+
+  // Sim chart update
+  const labels=Array.from({length:24},(_,i)=>i+':00');
+  const data=labels.map((_,i)=>{const h=i;const p=(h>=8&&h<=10)||(h>=17&&h<=20);const base=p?65:h>=11&&h<=13?38:12;return Math.min(100,Math.round(base+(congestion-40)*0.5+Math.random()*8));});
+  if(state.simChart){state.simChart.data.datasets[0].data=data;state.simChart.data.datasets[0].borderColor=col;state.simChart.update();}
+  else{state.simChart=mkChart('ch-sim','line',{labels,datasets:[{label:'Simulated Congestion',data,borderColor:col,backgroundColor:col.replace('rgb','rgba').replace(')',',0.08)')||'rgba(0,229,200,0.08)',fill:true,tension:0.4,pointRadius:0,borderWidth:2}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});}
+}
+
+function loadPreset(name){
+  const presets={
+    morning:{veh:1800,wx:10,inc:1,evt:0,cap:100,hour:8},
+    rain:{veh:900,wx:85,inc:2,evt:0,cap:80,hour:14},
+    accident:{veh:1200,wx:20,inc:5,evt:0,cap:60,hour:9},
+    event:{veh:1600,wx:10,inc:1,evt:4,cap:100,hour:19},
+    midnight:{veh:200,wx:5,inc:0,evt:0,cap:100,hour:2},
+    worst:{veh:2000,wx:90,inc:8,evt:5,cap:30,hour:9},
+  };
+  const p=presets[name];if(!p)return;
+  Object.entries(p).forEach(([k,v])=>{const el=document.getElementById('sim-'+k);if(el){el.value=v;}});
+  updateSim();toast('Preset Loaded',name.charAt(0).toUpperCase()+name.slice(1)+' scenario active','info');
+}
+function resetSim(){['veh','wx','inc','evt','cap'].forEach(k=>{const el=document.getElementById('sim-'+k);if(el)el.value=el.defaultValue;});document.getElementById('sim-hour').value=8;updateSim();}
+function runSim(){updateSim();toast('Simulation Run','Results updated based on parameters','info');}
+
+// ═══════════════════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════════════════
+function initAnalyticsCharts(){
+  const days30=Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-29+i);return d.toLocaleDateString('en',{month:'short',day:'numeric'});});
+  mkChart('ch-trend','line',{labels:days30,datasets:[
+    {label:'Congestion %',data:days30.map(()=>rndInt(30,70)),borderColor:'#ff3d5a',tension:0.4,pointRadius:0,fill:false},
+    {label:'Avg Speed km/h',data:days30.map(()=>rndInt(25,55)),borderColor:'#00e5c8',tension:0.4,pointRadius:0,fill:false,yAxisID:'y1'},
+  ]},{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{ticks:{color:'#3d4760',callback:v=>v+'%'}},y1:{position:'right',ticks:{color:'#00e5c8',callback:v=>v+'km/h'},grid:{drawOnChartArea:false}}}});
+
+  mkChart('ch-incident-types','doughnut',{
+    labels:INCIDENT_TYPES,
+    datasets:[{data:[34,22,18,12,8,6],backgroundColor:['rgba(255,61,90,0.8)','rgba(255,171,0,0.8)','rgba(41,121,255,0.8)','rgba(187,134,252,0.8)','rgba(0,229,200,0.8)','rgba(240,98,146,0.8)'],borderColor:'transparent',borderWidth:0}]
+  },{cutout:'65%',plugins:{legend:{position:'right',labels:{color:'#7a86a0',font:{size:10},padding:8}}}});
+}
+
+function renderAdminTable(){
+  const tbody=document.getElementById('admin-tbody');
+  if(!tbody) return;
+  tbody.innerHTML=SEGMENTS.map(s=>{
+    const d=state.segments[s.id];if(!d)return'';
+    const ci=(d.vehicles/350*100).toFixed(1);
+    const uptime=(95+Math.random()*4.9).toFixed(1);
+    return`<tr><td class="mono">${s.id}</td><td>${s.name}</td><td class="mono">${d.speed} km/h</td><td class="mono">${d.vehicles}</td><td class="cyan mono">${ci}</td><td class="mono">${rndInt(0,8)}</td><td class="mono">${uptime}%</td><td><span class="badge badge-${d.level==='critical'?'critical':d.level}">${d.level}</span></td></tr>`;
+  }).join('');
+}
+
+function filterTable(q){
+  const rows=document.querySelectorAll('#admin-tbody tr');
+  rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';});
+}
+
+// ═══════════════════════════════════════════════════════
+// ML MODEL
+// ═══════════════════════════════════════════════════════
+function initModelCharts(){
+  const eps=Array.from({length:50},(_,i)=>i+1);
+  mkChart('ch-loss','line',{labels:eps,datasets:[
+    {label:'Train',data:eps.map(e=>Math.max(0.01,0.8*Math.pow(0.91,e)+0.015+Math.random()*0.008)),borderColor:'#00e5c8',tension:0.4,pointRadius:0},
+    {label:'Validation',data:eps.map(e=>Math.max(0.015,0.82*Math.pow(0.92,e)+0.022+Math.random()*0.012)),borderColor:'#ff6d00',tension:0.4,pointRadius:0,borderDash:[4,4]},
+  ]},{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:10}},y:{ticks:{color:'#3d4760'}}}});
+
+  const actual=Array.from({length:48},()=>rndInt(15,90));
+  const pred=actual.map(v=>Math.max(0,Math.min(100,v+(Math.random()-0.5)*14)));
+  mkChart('ch-pva','line',{
+    labels:Array.from({length:48},(_,i)=>i%6===0?(i)+':00':''),
+    datasets:[{label:'Actual',data:actual,borderColor:'#7a86a0',tension:0.3,pointRadius:0,borderWidth:1.5},{label:'Predicted',data:pred,borderColor:'#2979ff',tension:0.3,pointRadius:0,borderWidth:1.5,borderDash:[4,4]}]
+  },{plugins:{legend:{labels:{color:'#7a86a0',font:{size:10}}}},scales:{x:{ticks:{color:'#3d4760',maxTicksLimit:8}},y:{min:0,max:100,ticks:{color:'#3d4760',callback:v=>v+'%'}}}});
+
+  const feats=['Hour of day','Day of week','Speed (t-1)','Vehicle count','Weather','Incidents','Events','Road capacity','Density','Temp','Humidity','Holiday flag','School day','Construction','Signal status'];
+  const imp=[0.94,0.82,0.79,0.74,0.68,0.61,0.58,0.54,0.48,0.42,0.38,0.35,0.31,0.28,0.22];
+  mkChart('ch-feat','bar',{labels:feats,datasets:[{data:imp,backgroundColor:imp.map(v=>v>0.6?'rgba(0,229,200,0.7)':v>0.4?'rgba(41,121,255,0.6)':'rgba(255,171,0,0.5)'),borderRadius:3}]},{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{min:0,max:1,ticks:{color:'#3d4760'}},y:{ticks:{color:'#7a86a0',font:{size:10}}}}});
+}
+
+function renderTrainLog(){
+  const el=document.getElementById('train-log');if(!el)return;
+  const logs=[
+    {ts:'14:22:01',type:'info',msg:'Model training started — LSTM-v3.2'},
+    {ts:'14:22:04',type:'info',msg:'Loaded 1,847,293 training samples'},
+    {ts:'14:22:08',type:'info',msg:'Epoch 1/50 — loss: 0.7821, val_loss: 0.8104'},
+    {ts:'14:25:14',type:'info',msg:'Epoch 10/50 — loss: 0.2341, val_loss: 0.2688'},
+    {ts:'14:29:30',type:'info',msg:'Epoch 20/50 — loss: 0.0894, val_loss: 0.1021'},
+    {ts:'14:31:12',type:'warn',msg:'Epoch 25 — validation loss plateau detected'},
+    {ts:'14:31:13',type:'info',msg:'Reducing learning rate: 1e-3 → 1e-4'},
+    {ts:'14:35:44',type:'info',msg:'Epoch 35/50 — loss: 0.0312, val_loss: 0.0384'},
+    {ts:'14:39:22',type:'info',msg:'Epoch 47/50 — loss: 0.0186, val_loss: 0.0214'},
+    {ts:'14:40:01',type:'ok',msg:'Training complete — Best val_loss: 0.0207'},
+    {ts:'14:40:02',type:'ok',msg:'Model exported → traffic_lstm_v3.2.h5'},
+    {ts:'14:40:04',type:'ok',msg:'Deployed to production — accuracy: 94.2%'},
+  ];
+  el.innerHTML=logs.map(l=>`<div class="log-line"><span class="ts">[${l.ts}]</span> <span class="${l.type}">${l.type.toUpperCase()}</span>  ${l.msg}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function retrainModel(){
+  toast('⚡ Retraining Started','LSTM model retraining initiated — ETA 4 min','info');
+  let ep=0;
+  if(state.trainInterval) clearInterval(state.trainInterval);
+  state.trainInterval=setInterval(()=>{
+    ep++;const pct=Math.min(100,ep*2);
+    setEl('epoch-bar',null,`width:${pct}%`);
+    setEl('epoch-lbl',`${Math.floor(ep/2)} / 50`);
+    setEl('val-loss',(0.025-ep*0.0003).toFixed(4));
+    setEl('train-loss',(0.02-ep*0.0002).toFixed(4));
+    const log=document.getElementById('train-log');
+    if(log&&ep%5===0){log.innerHTML+=`<div class="log-line"><span class="ts">[now]</span> <span class="info">INFO</span>  Epoch ${Math.floor(ep/2)}/50 — loss: ${(0.02-ep*0.0002).toFixed(4)}</div>`;log.scrollTop=log.scrollHeight;}
+    if(pct>=100){clearInterval(state.trainInterval);toast('✓ Training Complete','Model accuracy: 95.1% — Deployed!','low');}
+  },120);
+}
+
+// ═══════════════════════════════════════════════════════
+// SEGMENT FEED
+// ═══════════════════════════════════════════════════════
+function renderSegFeed(){
+  const el=document.getElementById('seg-feed');if(!el)return;
+  el.innerHTML=SEGMENTS.map(s=>{
+    const d=state.segments[s.id];if(!d)return'';
+    const col=LEVEL_COLORS[d.level];
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <div style="display:flex;align-items:center;gap:7px"><div style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0"></div><span style="color:var(--text)">${s.id}</span></div>
+      <span style="font-family:var(--font-mono);color:${col}">${d.speed}km/h</span>
+      <span class="badge badge-${d.level}">${d.level}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderSpeedDistChart(){
+  const bins=['0-20','20-40','40-60','60-80','80+'];
+  const data=Object.values(state.segments).reduce((acc,d)=>{
+    const v=d.speed;const i=v<20?0:v<40?1:v<60?2:v<80?3:4;acc[i]++;return acc;
+  },[0,0,0,0,0]);
+  mkChart('ch-speed-dist','bar',{labels:bins,datasets:[{label:'Segments',data,backgroundColor:['rgba(255,23,68,0.7)','rgba(255,61,90,0.7)','rgba(255,171,0,0.7)','rgba(0,230,118,0.7)','rgba(0,230,118,0.9)'],borderRadius:4}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#3d4760',font:{size:10}}},y:{ticks:{color:'#3d4760'}}}});
+}
+
+// ═══════════════════════════════════════════════════════
+// TICKER
+// ═══════════════════════════════════════════════════════
+function buildTicker(){
+  const items=state.alerts.filter(a=>!a.resolved).map(a=>({text:a.title,sev:a.sev}));
+  const inner=document.getElementById('ticker-inner');if(!inner)return;
+  const html=items.map(i=>`<span class="ticker-item"><span class="ticker-dot" style="background:${LEVEL_COLORS[i.sev==='critical'?'critical':i.sev]}"></span>${i.text}</span>`).join('');
+  inner.innerHTML=html+html; // duplicate for seamless loop
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST / VOICE
+// ═══════════════════════════════════════════════════════
+let toastTimeout;
+function toast(title,body,sev='info'){
+  const t=document.getElementById('toast');
+  setEl('toast-title',title);setEl('toast-body',body);
+  t.className=`toast ${sev}`;
+  setTimeout(()=>t.classList.add('show'),10);
+  clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>t.classList.remove('show'),5000);
+  if(state.voiceEnabled&&window.speechSynthesis){
+    const u=new SpeechSynthesisUtterance(`${sev} alert: ${body}`);u.rate=1.1;window.speechSynthesis.speak(u);
+  }
+}
+function closeToast(){document.getElementById('toast')?.classList.remove('show');}
+function toggleVoice(){state.voiceEnabled=!state.voiceEnabled;const btn=document.getElementById('voice-btn');if(btn)btn.className='voice-btn'+(state.voiceEnabled?' speaking':'');toast('Voice Alerts',state.voiceEnabled?'Voice alerts enabled':'Voice alerts disabled','info');}
+function testCriticalAlert(){injectAlert();if(document.getElementById('page-alerts')?.classList.contains('active'))renderAlerts();}
+
+// ═══════════════════════════════════════════════════════
+// CHART HELPER
+// ═══════════════════════════════════════════════════════
+function mkChart(id,type,data,options={}){
+  const canvas=document.getElementById(id);if(!canvas)return null;
+  if(canvas._chart){canvas._chart.destroy();}
+  const defaults={responsive:true,maintainAspectRatio:false,animation:{duration:600},plugins:{legend:{display:false},...(options.plugins||{})},scales:{...options.scales}};
+  delete options.scales;delete options.plugins;
+  const chart=new Chart(canvas.getContext('2d'),{type,data,options:{...defaults,...options}});
+  canvas._chart=chart;state.charts[id]=chart;return chart;
+}
+
+function setEl(id,text,style){
+  const el=document.getElementById(id);if(!el)return;
+  if(text!==null&&text!==undefined)el.textContent=text;
+  if(style)el.style.cssText+=';'+style;
+}
+
+// ═══════════════════════════════════════════════════════
+// LIVE UPDATE LOOP
+// ═══════════════════════════════════════════════════════
+function liveUpdate(){
+  // Update 3 random segments
+  Object.keys(state.segments).sort(()=>Math.random()-0.5).slice(0,3).forEach(id=>{
+    const lvl=rndLvl();
+    state.segments[id]={level:lvl,speed:spd(lvl),vehicles:veh(lvl),congestion:congPct(lvl),trend:rndEl(['rising','falling','stable'])};
+  });
+
+  // Redraw active map
+  const activePage=document.querySelector('.page.active')?.id;
+  if(activePage==='page-dashboard'){drawMap('map-canvas','map-tt');renderDashAlerts();}
+  if(activePage==='page-livemap'){drawMap('map-canvas2','map-tt2',true);renderSegFeed();}
+
+  // Update topbar
+  const levels=Object.values(state.segments);
+  const avg=Math.round(levels.reduce((s,d)=>s+d.speed,0)/levels.length);
+  const cong=levels.filter(d=>d.level==='medium'||d.level==='high'||d.level==='critical').length;
+  const crit=levels.filter(d=>d.level==='critical').length;
+  setEl('ts-speed',avg+' km/h');setEl('ts-cong',cong);setEl('ts-crit',crit);
+  setEl('kpi-speed',avg);setEl('kpi-cong',cong);
+  setEl('sh-latency',rndInt(12,28)+'ms');
+  setEl('sh-db',`${rndInt(44,50)}/50`);
+}
+
+function refreshAll(){liveUpdate();toast('Data Refreshed','All segments updated','info');}
+
+function exportCSV(){
+  const rows=['ID,Name,Zone,Speed,Vehicles,Congestion,Level'];
+  SEGMENTS.forEach(s=>{const d=state.segments[s.id];if(d)rows.push(`${s.id},"${s.name}",${s.zone},${d.speed},${d.vehicles},${d.congestion}%,${d.level}`);});
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='trafficiq_export.csv';a.click();
+  toast('Export Ready','CSV downloaded to your device','low');
+}
+
+let isDark=true;
+function toggleTheme(){isDark=!isDark;document.documentElement.style.filter=isDark?'':'invert(1) hue-rotate(180deg)';toast('Theme Changed',isDark?'Dark mode active':'Light mode active','info');}
+
+// ═══════════════════════════════════════════════════════
+// CLOCK & DATE
+// ═══════════════════════════════════════════════════════
+function updateClock(){
+  const now=new Date();
+  const t=now.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  setEl('topbar-clock',t);
+  setEl('dash-sub',`${now.toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} · Real-time monitoring active`);
+  // Simulate weather drift
+  const base=28+Math.round(Math.sin(Date.now()/100000)*3);
+  setEl('weather-temp',base+'°C');
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  initState();
+  document.getElementById('p-date')?.setAttribute('value',todayStr());
+
+  // Draw initial map
+  setTimeout(()=>{
+    renderMap('map-canvas','map-tt');
+    initDashCharts();
+    renderDashAlerts();
+    buildTicker();
+    updateClock();
+  },100);
+
+  // Clocks & live data
+  setInterval(updateClock,1000);
+  setInterval(liveUpdate,5000);
+  setInterval(buildTicker,30000);
+
+  // Welcome toast
+  setTimeout(()=>toast('🚀 TrafficIQ Online','All 24 sensors active · Model accuracy 94.2%','info'),800);
+  setTimeout(()=>toast('🚨 Critical Alert','NH-48 — gridlock detected · 97% congestion','critical'),3500);
+  setTimeout(()=>toast('💡 Route Suggestion','Via Ring Road saves 17 min right now','low'),7000);
+
+  // Map resize observer
+  const observer=new ResizeObserver(()=>{
+    const activePage=document.querySelector('.page.active')?.id;
+    if(activePage==='page-dashboard')drawMap('map-canvas','map-tt');
+    if(activePage==='page-livemap')drawMap('map-canvas2','map-tt2',true);
+  });
+  document.querySelectorAll('.map-wrap').forEach(el=>observer.observe(el));
+});
+</script>
+</body>
+</html>
