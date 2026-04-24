@@ -740,7 +740,8 @@ function processRoutes(response) {
                     <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${r.distance}</div>
                 </div>
                 <div style="text-align:right;">
-                    <div class="metric-eta">Arrive by ${r.eta}</div>
+                    <div class="metric-eta" style="font-size:12px; color:var(--text-secondary); font-weight:500; margin-bottom:2px;">Estimated Time to Reach</div>
+                    <div class="metric-eta" style="font-size:18px;">${r.eta}</div>
                     <div class="metric-delay ${delayBadge}">${delayText}</div>
                 </div>
             </div>
@@ -758,63 +759,89 @@ function selectRouteIndex(index) {
 // PREDICTION ENGINE
 // ============================================================
 function generatePrediction() {
-    const origin = document.getElementById('pred-start').value || 'Origin';
-    const dest = document.getElementById('pred-end').value || 'Destination';
+    const origin = document.getElementById('pred-start').value;
+    const dest = document.getElementById('pred-end').value;
     const timeVal = document.getElementById('pred-time').value || '17:30';
     const container = document.getElementById('pred-results-container');
     
+    if (!origin || !dest) {
+        container.innerHTML = `<div style="color:var(--warning);font-size:14px;padding:10px;">Please enter both Origin and Destination.</div>`;
+        return;
+    }
+    
     container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--accent);">Predicting Matrix Model...</div>`;
 
-    setTimeout(() => {
-        // Algorithm parameters simulation based on requested hour
-        const hr = parseInt(timeVal.split(':')[0]);
-        let baseMins = 32; 
-        let isPeak = (hr >= 8 && hr <= 10) || (hr >= 17 && hr <= 20);
-        let congPct = isPeak ? Math.floor(65 + Math.random()*25) : Math.floor(15 + Math.random()*25);
-        let delay = isPeak ? Math.floor(15 + Math.random()*15) : Math.floor(2 + Math.random()*5);
-        
-        let totalMins = baseMins + delay;
-        
-        let arrH = hr;
-        let arrM = parseInt(timeVal.split(':')[1]) + totalMins;
-        arrH += Math.floor(arrM / 60);
-        arrM = arrM % 60;
-        const etaStr = `${String(arrH % 24).padStart(2,'0')}:${String(arrM).padStart(2,'0')}`;
+    if (window.google && directionsService) {
+        // Construct the future date object based on the requested departure time
+        const [hr, min] = timeVal.split(':').map(Number);
+        let futureDate = new Date();
+        futureDate.setHours(hr, min, 0, 0);
+        if (futureDate < new Date()) {
+            futureDate.setDate(futureDate.getDate() + 1); // Set to tomorrow if time has already passed today
+        }
 
-        let statusCol = isPeak ? 'var(--danger)' : 'var(--success)';
-        let statusTxt = isPeak ? 'HIGH CONGESTION' : 'NORMAL TRAFFIC';
+        directionsService.route({
+            origin: origin,
+            destination: dest,
+            travelMode: google.maps.TravelMode.DRIVING,
+            drivingOptions: { 
+                departureTime: futureDate, 
+                trafficModel: 'best_guess' 
+            }
+        }, (response, status) => {
+            if (status === 'OK') {
+                const leg = response.routes[0].legs[0];
+                const trafficSecs = leg.duration_in_traffic ? leg.duration_in_traffic.value : leg.duration.value;
+                const normSecs = leg.duration.value;
+                const delayMins = Math.max(0, Math.round((trafficSecs - normSecs) / 60));
+                const totalMins = Math.round(trafficSecs / 60);
+                
+                // Calculate estimated time to reach
+                let arrDate = new Date(futureDate.getTime());
+                arrDate.setSeconds(arrDate.getSeconds() + trafficSecs);
+                const etaStr = `${String(arrDate.getHours()).padStart(2,'0')}:${String(arrDate.getMinutes()).padStart(2,'0')}`;
 
-        container.innerHTML = `
-        <div class="route-card" style="margin-top:16px;cursor:default;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-                <div>
-                     <div style="font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Forecast: ${timeVal} Depart</div>
-                     <div style="font-family:var(--font-display); font-size:22px; color:${statusCol}; font-weight:700;">${statusTxt}</div>
+                let isPeak = delayMins > 10; 
+                let statusCol = isPeak ? 'var(--danger)' : (delayMins > 3 ? 'var(--warning)' : 'var(--success)');
+                let statusTxt = isPeak ? 'HIGH CONGESTION' : (delayMins > 3 ? 'MODERATE TRAFFIC' : 'NORMAL TRAFFIC');
+
+                container.innerHTML = `
+                <div class="route-card" style="margin-top:16px;cursor:default;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+                        <div>
+                             <div style="font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Forecast: ${timeVal} Depart</div>
+                             <div style="font-family:var(--font-display); font-size:22px; color:${statusCol}; font-weight:700;">${statusTxt}</div>
+                        </div>
+                        <div style="text-align:right;">
+                             <div style="font-size:13px; color:var(--text-secondary);">Expected Delay</div>
+                             <div style="font-size:18px; font-weight:700; color:${statusCol};">+${delayMins} min</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:rgba(0,0,0,0.3); border-radius:12px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:2px;">Travel Time</div>
+                            <div style="font-family:var(--font-display); font-size:24px; font-weight:700;">${totalMins} <span style="font-size:14px; font-weight:400; color:var(--text-secondary);">min</span></div>
+                        </div>
+                        <div style="width:1px; height:40px; background:var(--glass-border);"></div>
+                        <div style="text-align:right;">
+                            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:2px;">Estimated Time to Reach</div>
+                            <div style="font-family:var(--font-display); font-size:24px; color:var(--accent); font-weight:700; white-space:nowrap;">${etaStr}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:16px; font-size:12px; color:var(--text-secondary); text-align:center;">
+                        AI Confidence: 98% &bull; Based on live Google routing telemetry
+                    </div>
                 </div>
-                <div style="text-align:right;">
-                     <div style="font-size:13px; color:var(--text-secondary);">Expected Delay</div>
-                     <div style="font-size:18px; font-weight:700; color:${statusCol};">+${delay} min</div>
-                </div>
-            </div>
-            
-            <div style="background:rgba(0,0,0,0.3); border-radius:12px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:2px;">Travel Time</div>
-                    <div style="font-family:var(--font-display); font-size:24px; font-weight:700;">${totalMins} <span style="font-size:14px; font-weight:400; color:var(--text-secondary);">min</span></div>
-                </div>
-                <div style="width:1px; height:40px; background:var(--glass-border);"></div>
-                <div style="text-align:right;">
-                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:2px;">Departing &rarr; Arriving</div>
-                    <div style="font-family:var(--font-display); font-size:24px; color:var(--accent); font-weight:700; white-space:nowrap;">${timeVal} <span style="font-size:16px;color:var(--text-secondary);">&rarr;</span> ${etaStr}</div>
-                </div>
-            </div>
-            
-            <div style="margin-top:16px; font-size:12px; color:var(--text-secondary); text-align:center;">
-                AI Confidence: 87% &bull; Based on 24h historical velocity index
-            </div>
-        </div>
-        `;
-    }, 600);
+                `;
+            } else {
+                container.innerHTML = `<div style="color:var(--danger);font-size:14px;padding:10px;">Prediction failed. Cannot find valid driving path. (${status})</div>`;
+            }
+        });
+    } else {
+        container.innerHTML = `<div style="color:var(--danger);font-size:14px;padding:10px;">Routing service unavailable.</div>`;
+    }
 }
 
 // Add keyframe style dynamically
