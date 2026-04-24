@@ -597,11 +597,11 @@
         </div>
         <div id="traffic-map" style="height:350px;">
           <!-- Google Map will initialize here -->
-          <div class="map-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div>Low</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--med)"></div>Medium</div>
-            <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div>High</div>
-          </div>
+        </div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div>Low</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--med)"></div>Medium</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div>High</div>
         </div>
       </div>
 
@@ -652,6 +652,12 @@
         <div id="traffic-map-full">
            <!-- Google Map will initialize here -->
         </div>
+        <div class="map-legend" style="bottom: 24px; left: 24px; pointer-events: none;">
+          <div class="legend-item" style="font-family:var(--font-mono);font-size:10px;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Traffic Density</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--low)"></div>Low</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--med)"></div>Medium</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--high)"></div>High</div>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card">
@@ -675,8 +681,8 @@
   <div class="header">
     <div class="header-title">IoT Sensor Network</div>
     <div class="header-actions">
-       <button class="btn btn-sm">⬇ Download Readings</button>
-       <button class="btn btn-accent btn-sm">+ Add Sensor</button>
+       <button class="btn btn-sm" onclick="downloadReadings()">⬇ Download Readings</button>
+       <button class="btn btn-accent btn-sm" onclick="addSensor()">+ Add Sensor</button>
     </div>
   </div>
   <div style="padding:24px 28px;">
@@ -1012,7 +1018,7 @@
     <div class="header-title">ML Model Command Center</div>
     <div class="header-actions">
       <button class="btn btn-accent" onclick="retrainModel()">⚡ Retrain Model</button>
-      <button class="btn">⬇ Export Weights</button>
+      <button class="btn" onclick="exportWeights()">⬇ Export Weights</button>
     </div>
   </div>
   <div style="padding:24px 28px;">
@@ -1111,7 +1117,7 @@
           <table class="data-table">
             <tbody>
               <tr><td>Voice Alerts</td><td><button class="btn btn-sm" id="voice-toggle-btn" onclick="toggleVoice()">Enable</button></td></tr>
-              <tr><td>SMS Alerts</td><td><button class="btn btn-sm">Configure</button></td></tr>
+              <tr><td>SMS Alerts</td><td><button class="btn btn-sm" onclick="configureSMS()">Configure</button></td></tr>
             </tbody>
           </table>
         </div>
@@ -1513,12 +1519,28 @@ function updateTopbar() {
     if (!segments.length) return;
     const avgSpeed = Math.round(segments.reduce((s, d) => s + d.speed, 0) / segments.length);
     const congCount = segments.filter(d => d.level === 'medium' || d.level === 'high').length;
-    const critCount = segments.filter(d => d.level === 'high').length; // map critical to high for simplicity
+    const critCount = ALERTS_DATA.filter(a => a.level === 'high').length;
+    const activeSegs = segments.length;
     
-    setEl('ts-speed', avgSpeed);
+    // Topbar stats
+    setEl('ts-segs', activeSegs);
     setEl('ts-cong', congCount);
     setEl('ts-crit', critCount);
+    const tsSpeed = document.getElementById('ts-speed');
+    if(tsSpeed) tsSpeed.innerHTML = `${avgSpeed} <span style="font-size:10px;font-weight:400;color:var(--text3)">km/h</span>`;
+    
+    // Dashboard KPIs
+    setEl('stat-segments', activeSegs);
+    setEl('stat-congested', congCount);
+    setEl('stat-alerts', critCount);
     setEl('stat-speed', avgSpeed);
+
+    // Update KPI bars
+    const setBar = (id, pct) => { const el = document.getElementById(id); if (el) { el.style.width = pct + '%'; }};
+    setBar('bar-segments', 100);
+    setBar('bar-congested', Math.min(100, (congCount / Math.max(1, activeSegs)) * 100));
+    setBar('bar-alerts', Math.min(100, (critCount / 10) * 100));
+    setBar('bar-speed', Math.min(100, (avgSpeed / 80) * 100));
 }
 
 // Clock and Topbar updates handled by consolidated updateClock function below
@@ -2299,6 +2321,38 @@ function initCharts() {
   if(lcCtx) {
     new Chart(lcCtx,{type:'line',data:{labels:Array.from({length:20},(_,i)=>i),datasets:[{label:'Loss',data:Array.from({length:20},()=>Math.random()*0.1),borderColor:'#ff6b35'}]},options:{responsive:true,maintainAspectRatio:false}});
   }
+
+  // Predicted vs Actual chart
+  const pvaCtx = document.getElementById('ch-pva')?.getContext('2d');
+  if(pvaCtx) {
+    const act = Array.from({length:10},()=>Math.floor(Math.random()*60+20));
+    const pred = act.map(v => v + Math.floor(Math.random()*10 - 5));
+    new Chart(pvaCtx,{type:'line',data:{labels:['1','2','3','4','5','6','7','8','9','10'],datasets:[{label:'Actual',data:act,borderColor:'#00d4aa',tension:0.3},{label:'Predicted',data:pred,borderColor:'#0099ff',borderDash:[5,5],tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8892a4',font:{size:11}}}}}});
+  }
+
+  // Feature Importance chart
+  const featCtx = document.getElementById('ch-feat')?.getContext('2d');
+  if(featCtx) {
+    new Chart(featCtx,{type:'bar',data:{labels:['Time of Day','Weather','Historical Volume','Day of Week','Active Incidents'],datasets:[{label:'Importance',data:[0.85,0.65,0.92,0.45,0.78],backgroundColor:'rgba(0,212,170,0.6)',borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a5568'}},y:{ticks:{color:'#8892a4',font:{size:10}}}}}});
+  }
+
+  // Initialize training log
+  const logEl = document.getElementById('train-log');
+  if (logEl) {
+    logEl.innerHTML = [
+      '<div class="log-line"><span class="ts">[08:42:11]</span><span class="info">INFO</span> Loading dataset: ncr_traffic_2023.csv (4.2GB)</div>',
+      '<div class="log-line"><span class="ts">[08:45:03]</span><span class="info">INFO</span> Preprocessing 28 features...</div>',
+      '<div class="log-line"><span class="ts">[08:48:22]</span><span class="ok">OK</span> Preprocessing complete. 850,214 samples ready.</div>',
+      '<div class="log-line"><span class="ts">[08:49:10]</span><span class="info">INFO</span> Building LSTM Ensemble (3 layers, 128 units)</div>',
+      '<div class="log-line"><span class="ts">[08:50:00]</span><span class="info">INFO</span> Epoch 1/50 - loss: 0.0812 - val_loss: 0.0765</div>',
+      '<div class="log-line"><span class="ts">[08:55:12]</span><span class="info">INFO</span> Epoch 10/50 - loss: 0.0411 - val_loss: 0.0392</div>',
+      '<div class="log-line"><span class="ts">[09:12:45]</span><span class="info">INFO</span> Epoch 40/50 - loss: 0.0231 - val_loss: 0.0225</div>',
+      '<div class="log-line"><span class="ts">[09:20:11]</span><span class="ok">OK</span> Early stopping triggered at Epoch 47.</div>',
+      '<div class="log-line"><span class="ts">[09:20:15]</span><span class="ok">OK</span> Final Validation Loss: 0.0214</div>',
+      '<div class="log-line"><span class="ts">[09:21:00]</span><span class="info">INFO</span> Saving weights to model_v2.1.h5</div>',
+      '<div class="log-line"><span class="ts">[09:22:30]</span><span class="ok">OK</span> Model successfully deployed to production layer.</div>'
+    ].join('');
+  }
 }
 
 // ============================================================
@@ -2330,15 +2384,21 @@ function simulateDataRefresh() {
   renderMap();
   renderSegmentTable();
   renderAdminTable();
+  updateTopbar(); // Accurately update KPIs according to map data
   showToast('Data Updated','All segments refreshed','low');
-
-  // Animate stat values slightly
-  const changes=[[-2,5],[-1,3],[-1,2],[-5,5]];
-  ['stat-segments','stat-congested','stat-alerts','stat-speed'].forEach((id,i)=>{
-    const el=document.getElementById(id);
-    if(el){ const base=parseInt(el.textContent);el.textContent=Math.max(0,base+Math.floor(Math.random()*(changes[i][1]-changes[i][0])+changes[i][0])); }
-  });
 }
+
+function downloadReadings() { showToast('Download Started', 'Preparing IoT readings CSV...', 'info'); }
+function addSensor() { showToast('Sensor Pair Mode', 'Scanning for nearby devices...', 'low'); }
+function exportWeights() { showToast('Export Complete', 'Saved model_weights_v2.h5 to local drive.', 'low'); }
+function configureSMS() { showToast('SMS Config', 'Opening SMS integration settings...', 'low'); }
+function toggleVoice() { 
+  state.voiceEnabled = !state.voiceEnabled; 
+  const btn = document.getElementById('voice-toggle-btn');
+  if(btn) btn.textContent = state.voiceEnabled ? 'Disable' : 'Enable';
+  showToast('Voice Alerts', state.voiceEnabled ? 'Audio notifications enabled' : 'Audio notifications muted', 'medium'); 
+}
+function exportCSV() { showToast('Analytics Export', 'Generating 30-day performance report...', 'info'); }
 
 function exportReport() {
   const csv = ['Segment,Speed (km/h),Vehicles/km,Status',
@@ -2513,12 +2573,14 @@ function toggleViolationHeatmap() {
 }
 
 function showTimeMachine() {
+  showPage('livemap');
   document.getElementById('timeline-ctrl').classList.add('visible');
   showToast('Time Machine Active', 'Accessing historical database for replay...', 'info');
 }
 
 function closeTimeMachine() {
   document.getElementById('timeline-ctrl').classList.remove('visible');
+  showPage('security');
   renderMap();
 }
 
