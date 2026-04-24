@@ -790,6 +790,7 @@ function generatePrediction() {
             }
         }, (response, status) => {
             if (status === 'OK') {
+                directionsRenderer.setDirections(response); // Draw path on map
                 const leg = response.routes[0].legs[0];
                 const trafficSecs = leg.duration_in_traffic ? leg.duration_in_traffic.value : leg.duration.value;
                 const normSecs = leg.duration.value;
