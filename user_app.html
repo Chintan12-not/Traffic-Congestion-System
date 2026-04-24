@@ -8,8 +8,6 @@
 <!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
-<!-- APIs -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOek4WbbXDFdMfWUI-3qOtFAxaGQvDE-U&libraries=geometry,places"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -364,6 +362,14 @@
     100% { box-shadow: 0 0 25px rgba(0, 229, 255, 0.6); }
   }
 
+  /* Google Maps Error Workaround for Local Dev */
+  .gm-err-container { display: none !important; }
+  .gm-err-title { display: none !important; }
+  .gm-err-message { display: none !important; }
+  .gm-err-links { display: none !important; }
+  .dismissButton { display: none !important; }
+  .gm-style-bg { display: none !important; }
+
 </style>
 </head>
 <body>
@@ -587,6 +593,7 @@ const DARK_MAP_STYLE = [
 
 function initializeMap() {
     if (!window.google) return;
+    if (userMap) return; // Prevent double initialization
     
     // Default to New Delhi Coordinates
     const centerCoords = { lat: 28.6139, lng: 77.2090 };
@@ -816,5 +823,7 @@ style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
 document.head.appendChild(style);
 
 </script>
+<!-- APIs -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIS6v6iRMNSO-bj2czy786kP0PNSYDODU&libraries=geometry,places&callback=initializeMap" async defer></script>
 </body>
 </html>

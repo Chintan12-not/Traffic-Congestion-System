@@ -11,7 +11,7 @@ CORS(app)
 # ============================================================
 # GOOGLE MAPS CONFIGURATION
 # ============================================================
-GOOGLE_MAPS_KEY = "AIzaSyDOek4WbbXDFdMfWUI-3qOtFAxaGQvDE-U"
+GOOGLE_MAPS_KEY = "AIzaSyCIS6v6iRMNSO-bj2czy786kP0PNSYDODU"
 gmaps = None
 
 try:

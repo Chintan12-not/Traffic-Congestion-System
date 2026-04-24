@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NexRoute — Smart Congestion Prediction System</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOek4WbbXDFdMfWUI-3qOtFAxaGQvDE-U&libraries=geometry,places"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -345,6 +344,10 @@
   .cctv-rec { width: 8px; height: 8px; background: var(--danger); border-radius: 50%; animation: blink 1s infinite; }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
   .cctv-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 6px 10px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); font-size: 11px; color: #fff; }
+
+  /* Google Maps Error Workaround for Local Dev */
+  .gm-err-container { display: none !important; }
+  .gm-style-bg { display: none !important; }
 
   .signal-control { display: flex; flex-direction: column; gap: 12px; }
   .signal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; }
@@ -1797,6 +1800,25 @@ function resetMap() {
   }
 }
 
+function generatePopupContent(seg) {
+  const d = liveData[seg.id] || { level: 'low', speed: 45, vehicles: 120 };
+  return `
+    <div style="font-family:var(--font-body); padding:4px; min-width:150px; background:var(--bg2);">
+      <div style="font-weight:700; font-size:14px; margin-bottom:4px; color:var(--text);">${seg.name}</div>
+      <div style="font-size:11px; color:var(--text2); margin-bottom:10px;">Segment ID: ${seg.id}</div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px; color:var(--text);">
+         <span>Avg Speed:</span> <span style="font-family:var(--font-mono); color:var(--accent);">${d.speed} km/h</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text);">
+         <span>Density:</span> <span style="font-family:var(--font-mono); color:var(--accent);">${d.vehicles}</span>
+      </div>
+      <div style="margin-top:8px; font-size:11px;">
+         Status: <span style="color:var(--${d.level}); font-weight:bold; margin-left:4px;">${d.level.toUpperCase()}</span>
+      </div>
+    </div>
+  `;
+}
+
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -2625,5 +2647,6 @@ async function seedSupabaseData() {
   }
 }
 </script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIS6v6iRMNSO-bj2czy786kP0PNSYDODU&libraries=geometry,places&callback=initMaps" async defer></script>
 </body>
 </html>
